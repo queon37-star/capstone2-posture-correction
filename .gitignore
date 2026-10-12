@@ -1,0 +1,41 @@
+# Original / derived datasets (do not redistribute)
+data/
+
+# Generated results, plots, logs and snapshots
+results/
+logs/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Model checkpoints that may be large. Small final joblib goes in models/.
+*.pt
+*.pth
+*.onnx
+*.hef
+*.tflite
+*.mp4
+*.avi
+*.zip
+*.npz
+*.npy
+*.csv
+*.joblib
+!models/*.joblib
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Windows download metadata
+*:Zone.Identifier
