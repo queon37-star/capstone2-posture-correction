@@ -1,4 +1,54 @@
-# Capstone2: Squat online posture prototype (WSL)
+# Squat Streaming - Current Status
+
+## 1. Latest Configuration
+
+The original streaming prototype has been extended with
+improved repetition detection and classification.
+
+Current validated WSL configuration:
+
+- Bottom-depth threshold: 0.20
+- Pre-buffer: 16 frames
+- Post-buffer: 22 frames
+- Features: PlusAsymmetry180
+- Classifier: Logistic Regression
+- Training augmentation: 10% temporal crop
+- Final model: `models/squat_plus_asymmetry180_crop10_all9.joblib`
+
+## 2. Execution
+
+Run the latest configuration using:
+
+`bash scripts/run_squat_latest.sh --help`
+
+This wrapper uses the tunable streaming implementation
+with the latest model and threshold settings.
+
+The input is an uncut recorded video.
+
+The system performs pose inference, target tracking,
+repetition detection and Good/Bad classification.
+
+Ground-truth repetition boundaries are not used
+during streaming inference.
+
+## 3. Validation
+
+REHAB24-6 Camera17 evaluation results:
+
+- Repetition detection: 195/195
+- Mean interval IoU: 0.860
+- LOPO classification accuracy: 86.2%
+- Bad recall: 88.5%
+
+The evaluated system is a recorded-video streaming prototype.
+
+Real-camera end-to-end validation on the
+reComputer AI R2130-12 is still pending.
+
+## 4. Earlier Prototype Documentation
+
+### Capstone2: Squat online posture prototype (WSL)
 
 This directory adds a provisional **streaming repetition detector** to the existing pose-training project. It is an engineering prototype, **NOT yet validated online detection performance**.
 
