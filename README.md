@@ -3,44 +3,51 @@
 > 융합캡스톤디자인2 · 4조 · AI 분석 파트 개발 문서  
 > **기준일: 2026-10-14** · 현재 저장소는 **개발 PC에서 검증한 스쿼트 AI 프로토타입** 중심
 
-## 0. 조원이 먼저 알아야 할 핵심
+## 0. 통합 시 참고 사항
 
-- **목표:** 카메라로 운동 수행자의 자세를 추정하고, 스쿼트 횟수 및 반복별 `Good`/`Bad` 판정 결과를 모바일 앱에 전달하는 시스템 개발.
-- **최종 장치:** reComputer AI R2130-12(Raspberry Pi 5 기반) + Hailo-8 AI 가속기.
-- **AI 파이프라인:** YOLOv8m-Pose → 운동 수행자 추적 → 스쿼트 카운팅(FSM) → 반복 구간 보완 → **180개 특징 추출** → Logistic Regression → 반복 완료 이벤트 생성.
-- **역할 구분:**
-  - YOLOv8m-Pose: 매 프레임 사람의 **COCO 17개 관절** 추출.
-  - SquatCounter: 규칙 기반 상태 전이로 **횟수 카운팅**. 학습된 분류 모델이 아님.
-  - Logistic Regression: 완료된 스쿼트 **1회 전체의 특징**을 받아 `Good`/`Bad` 분류. 매 프레임 Good/Bad를 판단하는 모델이 아님.
-- **현재까지 완료:** PC 저장 영상에서 전체 AI 처리, REHAB24-6 Camera17 9명·195회 평가, Hailo-8 보드의 Pose 샘플 추론 구동.
-- **아직 미완료:** R2130-12의 실제 카메라 → Hailo Pose → 카운팅·분류 → FastAPI → 모바일 앱 **실데이터 전체 연결**.
-- **실행용 최종 모델:** `models/squat_plus_asymmetry180_crop10_all9.joblib`.
-- **최신 실험 설정:** `bottom_depth=0.20`, 반복 구간 앞쪽 **16프레임**, 뒤쪽 **22프레임** 추가.
+- **프로젝트 목적:** 카메라 영상에서 운동 수행자의 관절을 추출해 스쿼트 횟수와 반복별 `Good`/`Bad`를 판단하고, 결과를 앱에 전달하는 시스템 개발.
+- **AI 분석:** YOLOv8m-Pose(COCO17) → 수행자 추적 → SquatCounter(FSM) → 반복 구간 보완 → 180개 Feature → Logistic Regression → `rep` 이벤트.
+  - **카운팅:** 골반 이동량·무릎 각도를 이용하는 규칙 기반 FSM.
+  - **Good/Bad 분류:** 완료된 **스쿼트 1회 전체**의 특징으로 판단하는 이진 분류기. 프레임별 자세 오류 경고 모델은 아님.
+- **개발 상태 구분:** PC 저장 영상에서 AI 분석·평가 완료 / R2130-12에서 Hailo-8 Pose 샘플 추론 확인 / **실제 카메라→AI→서버→앱 통합 미완료**.
+- **서버 측 구현:** Raspberry Pi의 FastAPI + ngrok, 외부 WebSocket 접속, JSON 형식 검증, `systemd` 자동 실행·재시작. 현재는 `random_sender`의 **가상 AI 데이터**로 앱 연동을 확인함.
+- **앱 측 구현:** Expo/React Native, `wss` 연결·재연결, `rep` 횟수/정오 집계, `posture` 피드백 표시, 운동 종료 시 **휴대폰 SQLite 로컬 저장**.
+- **핵심 연동 사항:** 현재 AI 프로그램은 `JSONL` 파일에 결과 기록. **FastAPI로 실제 POST 전송하는 코드와 실제 Pose 입력 연결은 추가 구현 필요**. AI의 `issues=[]`, `score=null`은 현재 모델의 정상적인 출력 형식.
+- **현재 AI 실행 설정:** `models/squat_plus_asymmetry180_crop10_all9.joblib`, `bottom_depth=0.20`, 반복 앞 **16프레임**·뒤 **22프레임** 추가.
 
 ## 1. 전체 시스템과 현재 개발 범위
 
-### 1-1. 프로젝트 전체 구성(목표)
+### 1-1. 프로젝트 전체 구성(목표와 현재 구현 구분)
 
 ```text
-USB 카메라
+[현재 PC에서 검증한 AI 처리 / 보드 통합 목표]
+카메라 또는 저장 영상
     ↓
-reComputer AI R2130-12 + Hailo-8
+reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은 진행 필요
     ├─ YOLOv8m-Pose / COCO17 관절 추정
     ├─ 운동 수행자 선택·추적
     ├─ SquatCounter / 반복 구간 보완
     ├─ 180개 특징 / Logistic Regression
-    └─ AI 반복 이벤트(JSON)
-           ↓ 장치 내부 HTTP POST (통합 예정)
-    FastAPI 서버
-           ↓ WebSocket (ngrok을 통한 외부 접속)
-    Expo 모바일 앱
-           └─ 실시간 횟수·판정 표시 / SQLite 운동 기록
+    └─ AI 반복 이벤트(JSON)             ← 현재 PC 구현은 JSONL 기록
+           ↓ HTTP POST 연동 어댑터 개발 필요
+[서버: 현재 Raspberry Pi에서 별도 동작]
+    FastAPI → JSON 검사 → 이벤트 기록 / WebSocket 전송
+    ngrok 고정 도메인 + systemd 서비스
+           ↓ WSS(/ws), 인터넷 접속
+[앱: Expo / React Native]
+    실시간 반복 횟수·Good/Bad·자세 경고 표시
+    └─ 운동 종료 시 휴대폰 SQLite에 기록 저장
 ```
 
-- **AI 파트:** Pose 추론, 수행자 추적, 카운팅, Good/Bad 분류, 이벤트 생성.
-- **서버 파트:** FastAPI, JSON 스키마 검증, WebSocket 중계, 외부 접속 및 운영.
-- **앱 파트:** 운동 화면, 실시간 이벤트 수신, 재연결, 로컬 기록 저장.
-- **현재 통합 상태:** 서버–앱은 **가상 AI 이벤트**로 연동 확인. AI 분석은 **PC 저장 영상**으로 구현·평가. 두 흐름의 실데이터 결합은 진행 필요.
+| 담당 영역 | 중간 보고서 기준 확인된 구현 | AI와 연결할 때 필요한 작업 |
+|---|---|---|
+| **AI 분석** | PC 저장 영상에서 Pose → 추적 → 카운팅 → Good/Bad → JSONL 출력; R2130-12에서 Hailo Pose 샘플 작동 확인 | 라이브 카메라·Hailo 출력 연결, 서버에 이벤트 POST |
+| **서버(손준표)** | Raspberry Pi + FastAPI + ngrok 고정 주소, 외부 WSS 수신 확인, JSON 스키마 검사, `systemd` 자동 실행·재시작, 테스트 이벤트 송신 | 실제 AI 이벤트 수신·검증 및 보드/서버 배치 확정 |
+| **앱(임태빈)** | Expo 앱의 WebSocket 수신·재연결, 스쿼트·푸시업 선택 UI, 운동 종료 시 SQLite 로컬 저장 | 실제 AI 출력 검증, 오류 코드·운동 필터링·세션 정책 확정 |
+
+- **현재 서버–앱 연동은 실제 AI 판별이 아닌 `random_sender` 등 시뮬레이션 이벤트로 확인한 결과**임.
+- 서버와 앱의 저장소/실행 환경은 이 **AI 코드 저장소와 별도**이므로 본 저장소의 Python 스크립트만 실행해서 앱이 자동 연결되지는 않음.
+- **서버 배치:** 중간 보고서 시점에는 별도 Raspberry Pi에서 운영. R2130-12로 이전하여 AI·서버를 함께 구동하는 단계는 향후 통합 작업.
 
 ### 1-2. AI 처리 과정(현재 PC 구현)
 
@@ -317,29 +324,29 @@ reComputer AI R2130-12 + Hailo-8
 - **아직 미측정:** R2130-12에서 실제 카메라 입력을 포함한 전체 AI 파이프라인 FPS, 반복 완료→분류→앱 표시 지연, 장시간 메모리·안정성.
 - **지연 특성:** 종료 후 22프레임(30 FPS에서 약 0.73초) 확보가 필요하므로 FPS와 별개로 Good/Bad 출력이 늦어질 수 있음.
 
-## 7. 서버·앱 개발자가 알아야 할 AI 이벤트 인터페이스
+## 7. AI ↔ 서버 ↔ 앱 이벤트 형식과 통합 방법
 
-### 7-1. 현재 AI 프로그램의 출력
+### 7-1. 현재 AI 코드의 실제 출력
 
-- **현재 출력 위치:** `results/stream_test/<영상ID>_buffered_events.jsonl`.
-- **현재 방식:** 스쿼트 반복 완료 시 **JSON 객체 1개를 JSONL 파일에 기록**하고 터미널에도 출력.
-- **대표 필드:**
+- **생성 위치:** `results/stream_test/<영상ID>_buffered_events.jsonl` (PC 원본 MP4를 분석한 결과).
+- **생성 시점:** FSM이 스쿼트 1회를 검출하고, 후행 버퍼를 수집해 Good/Bad 분류를 완료한 시점.
+- **현재 제공하는 이벤트:** `type="rep"`, `exercise="squat"` 중심. 실제 서버로 POST하는 부분은 **아직 연결되지 않음**.
 
-| 필드 | 의미 | 현재 상태 |
+| 필드 | 의미 | 현재 AI 구현 |
 |---|---|---|
-| `type` | 이벤트 종류 | 반복 완료 시 `rep` |
+| `type` | 이벤트 유형 | `rep` |
 | `exercise` | 운동 종류 | `squat` |
-| `count` | 완료된 반복 누적 횟수 | 구현 |
-| `posture` | 자세 판별 결과 | `good`, `bad`, 실패 시 `unknown` |
-| `issues` | 구체적 오류 유형 코드 목록 | **현재 빈 배열 `[]`** |
-| `score` | 자세 점수 | **현재 `null`** |
-| `start_frame`, `end_frame` | 보완 버퍼까지 포함한 **분류 입력 구간** | 구현 |
-| `detected_start_frame`, `detected_end_frame` | FSM이 감지한 **원래 반복 구간** | 구현 |
-| `classification_frame_count` | 분류에 사용한 프레임 수 | 구현 |
-| `post_context_complete` | 종료 후 버퍼가 충분히 수집됐는지 | 구현 |
-| `probability_correct_uncalibrated` | 분류 모델의 Good 예측 확률값 | 구현, **보정된 점수 아님** |
+| `count` | 누적 완료 반복 횟수 | 구현 |
+| `posture` | 반복의 Good/Bad | `good` / `bad`, 추론 실패 시 `unknown` |
+| `issues` | 세부 자세 오류 코드 | **항상 `[]`**. 개별 오류 진단 미구현 |
+| `score` | 자세 점수 | **`null`**. 점수 모델 미구현 |
+| `start_frame`, `end_frame` | 분류에 사용한 보완 구간 | 구현 |
+| `detected_start_frame`, `detected_end_frame` | FSM이 탐지한 원래 구간 | 구현 |
+| `classification_frame_count` | 분류 입력 프레임 수 | 구현 |
+| `post_context_complete` | 종료 뒤 버퍼 수집 완료 여부 | 구현 |
+| `probability_correct_uncalibrated` | Good 예측 확률 | 구현. **신뢰도 보정된 자세 점수가 아님** |
 
-- **간략한 출력 형식 예시(실측 이벤트가 아닌 구조 예시):**
+**AI 반복 이벤트 예시(실제 측정 로그가 아닌 구조 예시)**
 
 ```json
 {
@@ -352,14 +359,89 @@ reComputer AI R2130-12 + Hailo-8
 }
 ```
 
-### 7-2. 서버·앱 프로토콜과의 차이(통합 시 필독)
+- `unknown` 및 `classification_error` 등 실패 이벤트를 서버·앱이 어떻게 처리할지 별도 합의 필요.
+- 서버 입력 스키마가 위 필드 중 어떤 것을 허용·필수로 처리하는지는 **통합 시 서버 담당자와 최종 확인 필요**.
 
-- **중간 발표의 목표 프로토콜:** AI → FastAPI로 HTTP POST, FastAPI → 앱으로 WebSocket 실시간 전송.
-- `id`, `time`, `session_id`는 **서버가 부여**하는 필드로 설명됨. 현재 AI JSONL에 동일하게 생성되는 구조는 아님.
-- 발표 JSON의 `issues: ["knee_over_toe"]`, `score: 72`는 **목표 형식을 보여주는 예시**. **현재 AI 분류기가 이 오류 코드나 점수를 생성하지 않음**.
-- `session_start`, 동작 중 `posture` 경고, `session_end` 이벤트는 **서버·앱의 프로토콜 설계에 포함된 유형**이며, 현재 AI 저장 영상 분류 코드에서 모두 구현된 것은 아님.
-- **서버와 합의할 사항:** 카운팅 기준 시점, 이벤트 중복 방지, `unknown` 처리, `issues`/`score`의 초기 허용값, 세션 시작·종료 책임 주체, AI 이벤트를 HTTP POST로 보내는 어댑터 구현.
-- **AI 통합 시 주의:** 현재 `run_squat_latest.sh`는 PC MP4 → JSONL 용도. 이 명령만으로 모바일 앱과 연결되지는 않음.
+### 7-2. 서버 구현 현황 — 손준표 중간 보고서 기준
+
+- **실행 환경:** Raspberry Pi의 FastAPI + ngrok 고정 도메인.
+  - 앱은 WebSocket `/ws` 경로로 실시간 접속. 같은 핫스팟 외의 외부 네트워크(LTE 등)에서도 연결 성공.
+  - Raspberry Pi IP가 바뀌어도 ngrok 고정 도메인을 사용하므로 앱 측 IP 재입력 불필요.
+  - **서버와 ngrok을 `systemd` 서비스로 등록**: 부팅 시 자동 실행, 오류 시 자동 재시작 및 재부팅 후 앱 연결 확인.
+  - **ngrok 터널과 서버 프로세스가 모두 실행 중**이어야 앱에서 접속 가능.
+- **프로토콜 및 검증:**
+  - 이벤트 종류: `session_start`, `rep`, `posture`, `session_end` 설계.
+  - 공통 필드: 운동 종류, 반복 횟수, 정오 판정, 피드백 코드 등의 JSON 구조 정의.
+  - 서버가 요청 형식을 검사하여 잘못된 데이터는 HTTP `422`로 거절하도록 구현.
+  - `random_sender`: 세션 시작 → 반복 → 자세 경고 → 세션 종료 순서의 **가상 이벤트**를 생성하는 테스트 도구.
+  - 브라우저 확인 페이지: 서버 수신 기록의 실시간 표 표시·디버깅.
+- **남은 작업:** AI 출력과 서버 입력 형식 최종 일치, 실제 AI POST 연동, R2130-12에서 AI와 서버를 통합 실행하는 구성 검증, 동일 네트워크 직접 접속을 예비 경로로 시험.
+
+### 7-3. 앱 구현 현황 — 임태빈 중간 보고서 기준
+
+| 앱 파일(앱 프로젝트 기준) | 역할 및 확인된 동작 |
+|---|---|
+| `src/config/serverConfig.js` | ngrok 고정 도메인, `WS_URL`(`/ws`), `RECORDS_URL`(`/records`), 관련 헤더를 한곳에서 관리 |
+| `src/context/WebSocketContext.js` | 앱 실행 시 WSS 자동 연결, 3초 후 재연결, 백그라운드 복귀 시 재접속, `connectionId`로 오래된 소켓 이벤트 방지 |
+| `src/app/index.js` | 스쿼트·푸시업 선택, 연결 상태 확인, 재연결 버튼; 미연결 상태에서 운동 시작 제한 |
+| `src/app/workout.js` | 실시간 횟수·자세 표시, 운동 종료 시 **휴대폰 SQLite에만 저장** |
+| `src/db/database.js` | `expo-sqlite` 기반 로컬 운동 기록 저장 |
+| `src/app/_layout.js` | 운동 선택 및 연결 여부에 따른 화면 접근 제한 |
+
+- **WebSocket 수신 형식:** 현재 앱은 **낱개 이벤트**와 **기록 목록 전체 재전송**을 모두 처리하도록 구성.
+
+  **낱개 이벤트 예시(앱 파싱 지원 형식, 실제 AI 출력 아님)**
+
+  ```json
+  {"count": 12, "posture": "good", "issues": [], "score": 90}
+  ```
+
+  **서버에서 확인된 목록 메시지 형식(아래 ID·값은 설명용 예시)**
+
+  ```json
+  {
+    "total": 2,
+    "records": [
+      {"id": 101, "type": "rep", "exercise": "squat", "count": 2, "posture": "good", "issues": [], "score": null},
+      {"id": 102, "type": "posture", "exercise": "squat", "count": 2, "posture": "bad", "issues": ["back_lean"], "score": null}
+    ]
+  }
+  ```
+
+  - 목록 재수신 시 기존에 처리한 `id`는 **중복 반영하지 않고 건너뜀**. 앱에는 새 기록만 순서대로 적용.
+  - `type="rep"`: **카운트·Good/Bad 집계 반영**.
+  - `type="posture"`: **피드백 표시만 갱신**. 카운트·정확도 집계에는 반영하지 않음.
+  - `session_start` / `session_end`: 현재 앱은 무시하며, 사용자의 운동 선택·종료 버튼으로 세션을 관리.
+  - **운동 기록 저장:** 앱에서 운동을 종료할 때 SQLite 로컬 저장. 서버 `/records`로 운동 기록을 다시 전송하지 않음. 서버의 `GET /records?after={id}`는 **현재 앱에서 미사용**.
+  - **운동 종류 필터:** 현재 앱이 다른 운동(`exercise`) 이벤트를 걸러내지 않는 상태 → 통합 시 보완 필요.
+
+- **앱에 정의된 오류 코드 → 한국어 표시:**
+
+| `issues` 코드 | 앱 표시 문구 | 현재 AI 생성 여부 |
+|---|---|---|
+| `knee_over_toe` | 무릎이 발끝보다 앞으로 나갔어요 | 미구현 |
+| `back_lean` | 허리가 너무 숙여졌어요 | 미구현 |
+| `shallow_depth` | 너무 얕게 앉았어요 | 미구현 |
+| `hip_sagging` | 엉덩이가 처졌어요 | 미구현 |
+
+- 위 코드들은 **앱의 피드백 문구 매핑과 서버 테스트 이벤트 규격**이며, 현재 AI 모델이 실제 운동에서 판정하는 항목이 아님.
+- 앱 쪽에서 확인이 필요한 사항: Expo Go에서 ngrok 우회 헤더 적용 여부, `/ws`의 최종 이벤트/목록 전송 정책, 운동 종류 필터링, 추가 오류 코드.
+
+### 7-4. 통합 시 확인할 사항
+
+| 확인 항목 | 담당 간 합의할 내용 |
+|---|---|
+| **AI → 서버 연결** | AI의 `rep` JSON을 서버 FastAPI 입력 경로에 실제 POST하는 어댑터 추가; 엔드포인트·필수 필드·HTTP 응답 규격 확인 |
+| **서버 → 앱 전송** | `/ws`에서 단일 이벤트 또는 `records` 배열 중 어떤 방식으로 보낼지 확정; 두 형식 모두 앱에서 처리 가능하도록 작성됨 |
+| **중복 방지** | 서버가 전송하는 각 기록의 고유 `id`, 전송 순서, 재연결 후 목록 재송신 정책 유지 |
+| **카운트·세션** | `rep`만 카운트 반영; 앱은 현재 세션 시작·종료를 자체 관리하므로 역할 충돌 여부 확인 |
+| **오류·점수** | AI의 `issues=[]`, `score=null`, `unknown` 처리를 허용할지 확인; 실제 오류 진단·점수 기능은 향후 개발 |
+| **종목 구분** | 앱이 선택한 운동과 수신한 `exercise`가 다르면 무시하는 로직 검토 |
+| **네트워크·운영** | ngrok 주소는 앱 `serverConfig.js`에서 관리, 서버·터널 실행 상태 및 오프라인 안내 확인 |
+| **실제 하드웨어** | Hailo Pose 출력의 관절 순서/좌표계·신뢰도 변환, R2130-12 구동 시 FPS·지연·메모리 실측 |
+
+- **참고 노션 페이지:** [손준표 — 서버 중간 보고서](https://app.notion.com/p/3f8e128967e280a3925ad462867a6777), [임태빈 — 앱 중간 보고서](https://app.notion.com/p/3f8e128967e28028b146edffd4ac5adc).
+- 위 사항은 **2026-10-13경 작성된 팀원 중간 보고서 기준**. 이후 서버·앱 수정 사항이 있다면 해당 저장소와 팀원 확인을 우선할 것.
 
 ## 8. 개발 환경, 실행 방법, 주요 파일
 
@@ -428,11 +510,14 @@ python -m pytest -q tests
 
 ### 9-2. 서버·앱 연동
 
-- [ ] AI 반복 이벤트의 FastAPI 입력 인터페이스 및 실제 HTTP POST 구현.
-- [ ] AI `unknown`, `issues=[]`, `score=null`을 서버·앱에서 허용하는지 확인.
-- [ ] 서버가 부여하는 `id`·`time`·`session_id`와 AI가 부여하는 `count`·`posture`의 책임 구분.
-- [ ] 실제 AI 이벤트가 WebSocket과 Expo 앱에 정상 반영되는지 확인.
-- [ ] 네트워크 단절, 재접속, 중복 이벤트, 운동 세션 종료 처리 확인.
+- [ ] 현재 AI의 JSONL 출력을 FastAPI 입력 형식으로 변환하고, 실제 HTTP POST 송신 기능 구현.
+- [ ] FastAPI의 JSON 검증(`422` 오류 포함) 통과 여부를 실제 AI 이벤트로 확인.
+- [ ] 서버 `/ws`의 **낱개 이벤트 / `records` 배열** 전달 방식에서 `rep` 카운트 중복 방지 및 기록 `id` 처리 검증.
+- [ ] `posture` 이벤트는 피드백만, `rep` 이벤트는 횟수·정오 집계만 변경하도록 테스트.
+- [ ] 앱 SQLite 로컬 저장 및 세션 시작/종료 버튼의 책임 범위 확인. 서버로 기록 재전송하는 기능은 현재 미사용.
+- [ ] 현재 AI의 `issues=[]`, `score=null`, `unknown` 처리와 앱의 `ISSUE_LABELS` 확장 규칙 합의.
+- [ ] 앱에서 **선택 운동과 다른 `exercise` 이벤트 무시** 기능 검토.
+- [ ] ngrok 접속·자동 재연결·서버 재시작 및 동일 핫스팟 예비 경로 검증.
 
 ### 9-3. 성능 개선·추가 검증
 
