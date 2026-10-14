@@ -1,116 +1,226 @@
-# Capstone2 - Exercise Posture Correction System
+# 경량 AI 실시간 운동 자세 교정 시스템
 
-## 1. Project Overview
+> **융합캡스톤디자인2 · AI 자세 분석 파트**  
+> 카메라 영상에서 운동 수행자의 관절을 추출하고, 스쿼트 횟수를 세며 각 반복 동작의 자세를 **Good(정상) / Bad(비정상)**으로 판별하는 프로젝트입니다.
 
-This repository contains the AI posture-analysis prototype for the
-Capstone2 exercise posture correction system.
+## 1. 프로젝트 개요
 
-The current pipeline is:
+이 저장소에는 **스쿼트 자세 분석을 위한 PC 기반 AI 프로토타입**과 관련 실험·평가 코드가 들어 있습니다.
 
-1. YOLOv8m-Pose: Extract 17 human keypoints.
-2. Subject Tracking: Select and track the exercise participant.
-3. SquatCounter: Detect squat repetitions using a state machine.
-4. RepBoundaryBuffer: Expand detected repetition boundaries.
-5. Feature Extraction: Extract 180 geometric and temporal features.
-6. Logistic Regression: Classify each repetition as Good or Bad.
+현재는 **저장된 운동 영상(MP4)을 프레임 순서대로 처리**하면서 사람 추적, 횟수 카운팅, 자세 분류까지 수행할 수 있습니다. 실제 보드인 **reComputer AI R2130-12(Hailo-8)**에서는 Pose 추론 환경 및 샘플 실행을 확인했지만, **카메라 → Pose 추론 → 카운팅 → 자세 분류 → 앱 전송**의 전체 과정은 아직 보드에서 통합 검증하지 않았습니다.
 
-## 2. Latest Inference Configuration
+### AI 처리 흐름
 
-- Model: `models/squat_plus_asymmetry180_crop10_all9.joblib`
-- Feature variant: `PlusAsymmetry180`
-- Feature dimensions: 180
-- Training method: 10% temporal-crop augmentation
-- Squat bottom-depth threshold: 0.20
-- Pre-buffer: 16 frames
-- Post-buffer: 22 frames
+```text
+운동 영상(MP4)
+   ↓
+YOLOv8m-Pose : 사람의 17개 관절 좌표 추출
+   ↓
+운동 수행자 선택 및 추적 : 여러 사람 중 분석 대상 유지
+   ↓
+SquatCounter : 스쿼트 시작·하강·최저점·상승·종료 판별
+   ↓
+RepBoundaryBuffer : 반복 구간 앞뒤 프레임 추가
+   ↓
+특징 추출 : 180개 움직임·관절 특징 계산
+   ↓
+Logistic Regression : 반복별 Good / Bad 분류
+   ↓
+JSONL 결과 저장 : 횟수, 자세 판별 결과, 프레임 구간 등
+```
 
-The latest execution wrapper is:
+| 구성 요소 | 역할 | 현재 구현 방식 |
+| --- | --- | --- |
+| YOLOv8m-Pose | 영상에서 관절 검출 | COCO 형식의 17개 관절 좌표 사용 |
+| 운동 수행자 추적 | 여러 사람이 있을 때 분석 대상 선택 | 영상별 수동 지정 Anchor + 이전 프레임 박스의 위치·겹침 정도 활용 |
+| SquatCounter | 스쿼트 횟수 계산 | 골반 이동량과 무릎 각도를 이용한 상태 전이 규칙(FSM) |
+| RepBoundaryBuffer | 분류에 필요한 동작 구간 보완 | 검출 구간 시작 전 16프레임, 종료 후 22프레임 추가 |
+| 특징 추출 | 반복 동작을 고정 길이 벡터로 변환 | 기본 특징 160개 + 좌우 비대칭 특징 20개 |
+| Logistic Regression | 한 번의 스쿼트를 정상/비정상으로 분류 | 180차원 입력을 사용하는 이진 분류기 |
 
-`bash scripts/run_squat_latest.sh --help`
+**참고:** 횟수 카운팅은 학습 모델이 아니라 규칙 기반 알고리즘으로 수행하며, Logistic Regression은 **한 번의 반복이 완료된 후** Good/Bad를 판별합니다. 자세가 Bad여도 스쿼트 반복으로 검출됐다면 횟수에는 포함됩니다.
 
-The wrapper passes the validated configuration to
-`scripts/run_squat_video_stream_tunable.py`.
+## 2. 현재까지의 개발 현황
 
-## 3. Evaluation Results
+| 항목 | 진행 상태 |
+| --- | --- |
+| PC에서 YOLOv8m-Pose 관절 추출 | 완료 |
+| 운동 수행자 추적, 스쿼트 카운팅, 반복 구간 보정 | 완료 (저장 영상 기준) |
+| 180개 특징 기반 Good/Bad 분류 및 LOPO 평가 | 완료 |
+| Crop10 데이터 증강 및 최종 모델 학습 | 완료 |
+| R2130-12의 Hailo-8 Pose 샘플 추론 | 완료 |
+| R2130-12에서 전체 AI 파이프라인 통합 | **진행 필요** |
+| 실제 카메라 입력 기반 전체 처리 성능 측정 | **진행 필요** |
+| 실제 AI 결과를 서버·모바일 앱과 연동 | **진행 필요** |
 
-Dataset: REHAB24-6, Exercise 6 (Squat), Camera17, 30 FPS.
+서버 및 모바일 앱과의 연결은 전체 프로젝트의 개발 대상이지만, **이 저장소는 AI 분석 코드 중심**으로 구성되어 있습니다.
 
-- Subjects: 9
-- Ground-truth repetitions: 195
-- Good repetitions: 134
-- Bad repetitions: 61
+## 3. 현재 사용하는 데이터와 모델
 
-### Repetition Detection
+### 데이터셋
 
-- Detected repetitions: 195/195
-- Mean interval IoU: 0.860
+- **REHAB24-6** 데이터셋의 **Exercise 6(Squat)** 사용
+- 현재 분석·평가에 사용한 영상: **Camera17, 30 FPS, 피험자 9명**
+- 전체 스쿼트 반복: **195회** (Good 134회 / Bad 61회)
+- 원본 영상과 정답 파일은 이 저장소에 포함하지 않음
 
-### Good/Bad Classification
+### 최종 자세 분류 모델
 
-Evaluated using Leave-One-Person-Out (LOPO) cross-validation.
+- 파일: `models/squat_plus_asymmetry180_crop10_all9.joblib`
+- 모델: **Logistic Regression**
+- 입력: **180개 특징** (`PlusAsymmetry180`)
+- 학습: 기존 반복 구간의 앞부분/뒷부분을 각각 10% 잘라내는 **시간 구간 절단 증강(Crop10)** 사용
+- 최종 모델은 **9명 전체의 데이터로 재학습**한 추론용 모델
 
-- Accuracy: 168/195 (86.2%)
-- Bad recall: 54/61 (88.5%)
-- Bad precision: 54/74 (73.0%)
-- Bad F1 score: approximately 80.0%
+**중요:** `PlusAsymmetry180`은 **특징의 종류**를, `Crop10`은 **학습 방법**을 뜻합니다. 따라서 최종 Crop10 모델의 `feature_variant`가 `PlusAsymmetry180`으로 표시되는 것은 정상입니다.
 
-These classification metrics are from held-out-subject
-evaluation, not evaluation of the final all-subject model
-on its own training data.
+## 4. 실험 결과
 
-### Processing Performance
+다음 결과는 **REHAB24-6 Camera17 영상**에서 얻은 값입니다.
 
-- PC processing throughput: 83.2 FPS
-- Evaluation input: recorded video
-- Development GPU: NVIDIA RTX 4070 Ti
+### 4-1. 자동 스쿼트 카운팅
 
-This FPS is not the measured performance of the
-reComputer AI R2130-12.
+| 지표 | 결과 |
+| --- | ---: |
+| 실제 스쿼트 반복 수 | 195회 |
+| 검출한 반복 수 | **195회** |
+| 실제 구간과 검출 구간의 평균 IoU | **0.860** |
 
-## 4. Current Development Status
+IoU는 **정답 반복 구간과 자동 검출 구간의 겹침 비율**입니다. `0.860`이 검출 구간이 14% 짧다는 의미는 아닙니다.
 
-Completed:
-- YOLOv8m-Pose-based keypoint extraction on PC
-- Anchor-based subject tracking
-- Streaming squat repetition detection
-- Repetition boundary buffering
-- 180-feature Good/Bad classification
-- LOPO evaluation and model comparison
-- Hailo-8 pose inference environment setup on R2130-12
+현재 결과는 개발 과정에서 반복적으로 사용한 데이터셋에서 측정한 것이므로, 다른 사람·카메라·운동 환경에서도 같은 결과가 나온다고 보장할 수 없습니다.
 
-Remaining:
-- Integrate the complete AI pipeline on R2130-12
-- Test with live camera input
-- Measure end-to-end FPS, latency and memory usage
-- Validate counting and classification on unseen recordings
-- Integrate real AI events with the server and mobile app
+### 4-2. Good/Bad 자세 분류
 
-## 5. Repository Notes
+**LOPO(Leave-One-Person-Out)** 방식으로 평가했습니다. 피험자 9명 중 8명으로 학습하고 남은 1명으로 평가하는 과정을 반복하여, 학습에 포함되지 않은 피험자에 대한 예측 결과를 합산한 방식입니다.
 
-Original datasets, videos, generated keypoints, evaluation outputs
-and logs are excluded from Git.
+| 지표 | 결과 |
+| --- | ---: |
+| 전체 분류 정확도 | **168/195 = 86.2%** |
+| Bad 재현율 | **54/61 = 88.5%** |
+| Bad 정밀도 | **54/74 = 73.0%** |
+| Bad F1 점수 | **약 80.0%** |
 
-The final Crop10 model was fitted using all nine subjects.
-The LOPO results were obtained using separate training/test folds.
+| 실제 정답 / 모델 예측 | Good 예측 | Bad 예측 |
+| --- | ---: | ---: |
+| 실제 Good | 114 | 20 |
+| 실제 Bad | 7 | 54 |
 
-Only load trusted, self-generated Joblib model files.
+- **Bad 재현율:** 실제로 잘못된 스쿼트 61회 중 54회를 Bad로 검출한 비율
+- **Bad 정밀도:** Bad라고 판단한 74회 중 실제 Bad가 54회인 비율
+- **오경고:** 실제 Good인 동작을 Bad로 판단한 경우 20회
 
-## 6. Original Baseline Documentation
+> **평가 결과와 최종 모델을 혼동하지 마세요.** 위의 86.2%는 LOPO 검증 결과이며, `squat_plus_asymmetry180_crop10_all9.joblib`은 9명 전체 데이터로 다시 학습한 **실행용 모델**입니다. 최종 모델을 자기 학습 데이터에 적용한 정확도를 위 수치로 제시한 것이 아닙니다.
 
-### REHAB24-6 YOLOv8m-Pose Squat classification baseline
+### 4-3. 처리 속도
 
-Inputs: `data/processed/REHAB24-6/camera17_yolov8m_tracked/index.csv` and its 195 `PM_*_rep*.npz` files. Each `.npz` stores `(T, 17, 3)` landmarks, `label` (`1=correct`, `0=incorrect`), and `person_id`.
+- 개발 PC: **NVIDIA RTX 4070 Ti**
+- 저장된 영상 처리 실험: **평균 83.2 FPS**
+- **R2130-12 전체 파이프라인의 FPS가 아닙니다.** 보드에서 카메라 입력부터 판별 결과까지의 FPS와 지연시간은 별도로 측정해야 합니다.
 
-From your WSL project root:
+## 5. 실행 방법 (WSL / 개발 PC)
+
+### 5-1. 필요한 환경과 파일
+
+- Python 및 프로젝트에서 사용한 `capstone_pose` Conda 환경
+- 주요 라이브러리: **Ultralytics, PyTorch, OpenCV, NumPy, scikit-learn, joblib** 등
+- 자세한 개발 환경 패키지 목록: `requirements-wsl.txt`
+- YOLO 가중치: `yolov8m-pose.pt` (저장소에 포함되지 않음)
+- REHAB24-6 원본 영상: 예를 들어 `data/raw/REHAB24-6/PM_029-Camera17-30fps.mp4`
+- 영상별 운동 수행자 Anchor: `configs/rehab24_squat_camera17_subjects.json`
+
+이 저장소는 원본 데이터셋을 포함하지 않으므로, **코드만 복제한 상태에서는 영상 추론을 바로 실행할 수 없습니다.** `requirements-wsl.txt`는 개발 환경 기록용이며, 다른 하드웨어에 그대로 설치하면 별도의 호환성 조정이 필요할 수 있습니다.
+
+### 5-2. 최신 설정으로 스쿼트 분석 실행
+
+프로젝트 루트 디렉터리에서 실행합니다.
 
 ```bash
 conda activate capstone_pose
-cp train_squat_baseline.py scripts/
-python scripts/train_squat_baseline.py 2>&1 | tee logs/train_squat_baseline.log
+
+# 사용 가능한 옵션 확인
+bash scripts/run_squat_latest.sh --help
+
+# PM_029 영상 전체 분석
+bash scripts/run_squat_latest.sh --video PM_029 --max-frames 0
 ```
 
-`results/squat_baseline/` will contain `metrics.json`, `confusion_matrix.png`, per-subject scores, `lopo_predictions.csv`, `squat_classifier.joblib`, and preprocessing features.
+`run_squat_latest.sh`는 아래 설정을 `run_squat_video_stream_tunable.py`에 전달하는 실행 스크립트입니다.
 
-This is a **repetition-level, offline** classifier and not a live per-frame form judgment. It uses geometric features (knee/hip angles, torso tilt, hip displacement) from 2D YOLO landmarks, then compares RandomForest and LogisticRegression under Leave-One-Person-Out validation. **No subject ID, label, camera orientation or video ID is used as a feature.** It selects the final model based on the held-out subject performance and then fits the final pipeline on all available participants. Since the same CV scores were used to compare models, consider the selected score exploratory rather than an unbiased final model selection estimate.
+| 설정 | 사용 값 |
+| --- | --- |
+| 분류 모델 | `squat_plus_asymmetry180_crop10_all9.joblib` |
+| 최저점 판정 골반 이동량 (`bottom_depth`) | `0.20` |
+| 반복 시작 전 추가 프레임 | `16` |
+| 반복 종료 후 추가 프레임 | `22` |
 
-YOLO valid joint proportion and target selection are separate quality concerns; manually inspect representative videos and samples. The model cannot yet generate clinically valid named error diagnoses (`issues`) or calibrated `score` values; these require separately labeled data/validation.
+**유의:** 이전 실험용 Python 스크립트의 기본 `bottom_depth`는 `0.45`일 수 있습니다. **최신 설정으로 실행하려면 위의 셸 스크립트를 사용**하세요.
+
+### 5-3. 분석 결과 확인
+
+별도 `--output`을 지정하지 않았다면 다음 경로에 결과가 생성됩니다.
+
+```text
+results/stream_test/PM_029_buffered_events.jsonl
+```
+
+출력에는 반복 횟수, Good/Bad 판별 결과, 검출 구간 및 실제 분류에 사용한 프레임 구간 등이 저장됩니다. 다음은 필드 형태를 설명하기 위한 **간략한 예시**입니다.
+
+```json
+{"type":"rep","exercise":"squat","count":1,"posture":"good","issues":[],"score":null}
+```
+
+현재 구현은 **Good/Bad 이진 판별**이며, 구체적인 자세 오류 이름(`issues`)과 검증된 자세 점수(`score`)를 아직 산출하지 않습니다. 내부 확률값도 검증된 자세 점수로 해석해서는 안 됩니다.
+
+### 5-4. 테스트 실행
+
+```bash
+python -m pytest -q tests
+```
+
+2026년 10월 기준으로 **13개 단위 테스트를 통과**했습니다. 다만 단위 테스트 통과와 전체 영상의 추론 정확도 검증은 별개입니다.
+
+## 6. 주요 파일 및 폴더 안내
+
+```text
+configs/
+  rehab24_squat_camera17_subjects.json      # 영상별 운동 수행자 기준 위치
+models/
+  squat_plus_asymmetry180_crop10_all9.joblib # 최종 Good/Bad 분류 모델
+scripts/
+  run_squat_latest.sh                        # 최신 설정 실행 스크립트
+  run_squat_video_stream_tunable.py          # 영상 기반 AI 분석 실행
+  stream_squat_core.py                       # 스쿼트 상태 전이 카운터
+  squat_rep_buffer.py                        # 반복 구간 앞뒤 프레임 보정
+  train_squat_crop10_all9.py                 # Crop10 최종 모델 학습
+  validate_squat_stream.py                   # 스트리밍 평가 도구
+  render_squat_presentation_demo.py          # 발표용 시연 영상 생성
+  train_squat_baseline.py                    # 초기 자세 분류 기준 모델
+  train_squat_extended.py                    # 특징 확장 실험
+tests/                                       # 단위 테스트
+docs/STREAMING.md                           # 스트리밍 구현·기존 실험 기록
+requirements-wsl.txt                         # WSL 개발 환경 의존성 기록
+```
+
+다른 `scripts/` 파일에는 임계값 비교, LOPO 평가, 특징 분석 등 개발 과정의 실험 코드가 포함돼 있습니다.
+
+**발표용 시연 영상 주의:** 원래 스트리밍 분석 프로그램은 실제로 영상의 프레임을 순서대로 추론합니다. 반면 발표용 MP4는 **이미 계산한 Good/Bad 결과를 영상과 동기화해 표시한 자료**로, 시연 MP4의 재생 자체가 매번 자세 분류를 새로 수행한다는 의미는 아닙니다.
+
+## 7. 현재 한계 및 다음 작업
+
+1. **보드 통합:** R2130-12의 Hailo-8 Pose 출력과 SquatCounter, 최종 Logistic Regression 연결
+2. **실제 카메라 검증:** USB/MIPI 카메라 입력, 전체 처리 FPS·지연시간·메모리 측정
+3. **다중 인물 대응:** 현재는 영상별로 수동 선택한 Anchor를 사용하므로 실제 사용자 자동 선택 기능 필요
+4. **일반화 평가:** 새로운 카메라 시점·피험자·비운동 동작에서 누락 카운팅과 오검출 측정
+5. **자세 피드백 확장:** 현재는 Good/Bad만 출력하므로 무릎 모임·상체 숙임 등 구체적인 오류 유형은 별도 개발 필요
+6. **시스템 연동:** 실제 AI 판별 이벤트를 서버와 모바일 앱으로 전달하고 통합 테스트
+
+## 8. 데이터 및 협업 시 주의사항
+
+- `data/`, `results/`, `logs/`와 원본 MP4·관절 데이터 파일은 `.gitignore`에 의해 GitHub 업로드에서 제외됩니다.
+- 원본 REHAB24-6 데이터의 사용 조건을 준수하고, 데이터셋 파일을 임의로 재배포하지 마세요.
+- `*.joblib`은 신뢰할 수 있는 출처의 파일만 불러오세요. Joblib 역직렬화는 임의 코드 실행 위험이 있습니다.
+- 보드 성능 수치와 PC 성능 수치를 혼동하지 마세요.
+- 실험 조건(모델 파일, `bottom_depth`, 전후 버퍼 프레임 수, 평가 대상)을 바꾼 경우 결과와 함께 기록해 주세요.
+
+초기 오프라인 Logistic Regression / Random Forest 기준 모델과 스트리밍 프로토타입에 대한 자세한 개발 기록은 `docs/STREAMING.md` 및 `scripts/train_squat_baseline.py` 등을 참고하면 됩니다.
