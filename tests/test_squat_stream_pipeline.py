@@ -88,3 +88,42 @@ def test_bad_pose_shape_and_missing_pose():
     assert pipeline.push(empty, frame_id=0) == []
     with pytest.raises(ValueError, match='17, 3'):
         pipeline.push(np.zeros((16, 3)), frame_id=1)
+
+
+def test_pipeline_matches_original_counter_and_buffer():
+    from stream_squat_core import SquatCounter
+    from squat_rep_buffer import RepBoundaryBuffer
+
+    frames = squat_frames() + [pose(400)] * 28
+    direct_counter = SquatCounter(fps=30, bottom_depth=0.20)
+    direct_buffer = RepBoundaryBuffer(fps=30, pre_frames=16, post_frames=22)
+    original = []
+    for frame_id, keypoints in enumerate(frames):
+        rep = direct_counter.push(keypoints, frame_id=frame_id)
+        original.extend(direct_buffer.push(frame_id, keypoints, rep))
+    original.extend(direct_buffer.flush())
+
+    classifier_inputs = []
+
+    def capture_classifier(seq, artifact):
+        classifier_inputs.append(seq.copy())
+        return 0, 0.25
+
+    pipeline = SquatStreamPipeline(
+        artifact=None, fps=30, bottom_depth=0.20,
+        pre_frames=16, post_frames=22, classifier=capture_classifier)
+    events = []
+    for frame_id, keypoints in enumerate(frames):
+        events.extend(pipeline.push(keypoints, frame_id=frame_id))
+    events.extend(pipeline.flush())
+
+    assert direct_counter.count == pipeline.counter.count == 1
+    assert len(original) == len(events) == len(classifier_inputs) == 1
+    rep, event = original[0], events[0]
+    np.testing.assert_array_equal(rep.keypoints, classifier_inputs[0])
+    assert event['start_frame'] == rep.start_frame
+    assert event['end_frame'] == rep.end_frame
+    assert event['detected_start_frame'] == rep.detected_start_frame
+    assert event['detected_end_frame'] == rep.detected_end_frame
+    assert event['post_context_complete'] == rep.post_context_complete
+    assert event['posture'] == 'bad'
