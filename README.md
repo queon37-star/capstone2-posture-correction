@@ -536,3 +536,32 @@ python -m pytest -q tests
 - **성능 기록:** **데이터셋/카메라/피험자 분리/모델/임계값/버퍼/측정 장치**를 함께 명시할 것.
 - **혼동 금지:** `195/195 카운팅` ≠ `86.2% Good/Bad 분류`; `PC 83.2 FPS` ≠ `R2130-12 실측 FPS`; `Crop10 학습 780행` ≠ `실제 운동 반복 780회`.
 - **실험 기록과 현재 구현 분리:** `docs/STREAMING.md`의 과거 프로토타입 설명과 이 README의 최신 실행 설정을 구분할 것.
+
+
+## 11. Pose 입력과 스쿼트 분석 파이프라인 분리 (2026-10-28, 리팩터링)
+
+- **변경 목적:** YOLOv8m-Pose 추출부와 SquatCounter → RepBoundaryBuffer → 180-feature LR 분류 → 'rep' JSON 출력을 분리해, 향후 Hailo-8의 COCO17 관절을 재사용 가능한 분석부에 연결.
+- **공통 모듈:** 'scripts/squat_stream_pipeline.py'의 'SquatStreamPipeline'을 사용. 프레임마다 원본 영상 **픽셀 좌표계**의 'float32 (17,3)' '[x,y,confidence]' 배열을 'push(kp, frame_id=...)'에 넣으면, 완성된 'rep' 이벤트 딕셔너리 목록을 반환함. 마지막에는 'flush()' 호출.
+- **분류기 분리:** 'scripts/squat_classification.py'의 'classify(seq, artifact)'가 기존 180개 특징/학습된 sklearn Pipeline을 그대로 사용. 새로운 학습은 하지 않음.
+- **기존 실행:** 'scripts/run_squat_video_stream_tunable.py'는 여전히 YOLO/수동 Anchor로 keypoint를 얻지만 분석과 JSON 생성은 공통 모듈에 위임. 'scripts/run_squat_latest.sh'의 'bottom_depth=0.20', 'pre_frames=16', 'post_frames=22' 설정은 유지.
+- **미완료:** Hailo 출력 형식·좌표 변환·수행자 선택·USB 카메라·AI→FastAPI POST·실기기 성능은 별도 통합 단계. 이 변경만으로 Hailo 추론이나 서버/앱 연결이 구현되는 것은 아님.
+
+예시 (이미 출력 형식을 검증한 Hailo 키포인트 배열이 있다고 가정):
+
+```python
+import joblib
+from squat_stream_pipeline import SquatStreamPipeline, missing_pose
+
+artifact = joblib.load("models/squat_plus_asymmetry180_crop10_all9.joblib")  # 자체 생성 파일만
+pipeline = SquatStreamPipeline(artifact=artifact, fps=30, bottom_depth=0.20,
+                               pre_frames=16, post_frames=22)
+
+# 프레임마다 한 번씩 수행. 검출 실패 시에도 프레임을 건너뛰지 않음.
+for frame_id, kp in source_of_selected_coco17_frames:
+    for event in pipeline.push(kp if kp is not None else missing_pose(), frame_id=frame_id):
+        print(event)  # 추후 서버 POST로 교체
+for event in pipeline.flush():
+    print(event)
+```
+
+테스트: 'python -m pytest -q tests/test_squat_stream_pipeline.py'; 기존 영상의 JSONL 이벤트를 리팩터링 전과 후에 비교해 최종 회귀 검증할 것.
