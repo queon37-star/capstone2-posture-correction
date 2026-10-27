@@ -1,8 +1,9 @@
-"""Controlled bottom-depth threshold experiment for buffered squat stream.
+"""Video-based squat stream using shared COCO17 analysis pipeline.
 
-Only change from run_squat_video_stream_buffered.py: optional command-line
-bottom_depth / bottom_knee passed to the existing SquatCounter. Defaults
-match original. GT files are NEVER loaded by this script.
+YOLO handles pose extraction and subject selection; SquatStreamPipeline
+handles counting, repetition buffering, classification and JSON events.
+Command-line threshold defaults match the pre-refactor runner.
+Ground-truth files are NEVER loaded by this script.
 """
 import argparse
 import json
@@ -74,6 +75,7 @@ def main():
     start_time = time.perf_counter()
     n = pose_found = 0
     previous_box = None
+
     def write_events(events, writer):
         for message in events:
             writer.write(json.dumps(message, ensure_ascii=False) + '\n')
