@@ -29,9 +29,10 @@ class SquatStreamPipeline:
 
     def __init__(self, *, artifact, fps, bottom_depth=0.45,
                  bottom_knee=120.0, pre_frames=16, post_frames=22,
-                 classifier=None):
+                 classifier=None, count_only=False):
         self.artifact = artifact
         self.classifier = classifier
+        self.count_only = bool(count_only)
         self.counter = SquatCounter(fps=fps, bottom_depth=bottom_depth,
                                     bottom_knee=bottom_knee)
         self.assembler = RepBoundaryBuffer(fps=fps, pre_frames=pre_frames,
@@ -53,25 +54,33 @@ class SquatStreamPipeline:
 
     def _make_event(self, completed_rep):
         self.event_count += 1
-        try:
-            if self.classifier is None:
-                from squat_classification import classify
-                classify_fn = classify
-            else:
-                classify_fn = self.classifier
-            pred, prob = classify_fn(completed_rep.keypoints, self.artifact)
-            message = {
-                'type': 'rep', 'exercise': 'squat', 'count': self.event_count,
-                'posture': 'good' if pred == 1 else 'bad',
-                'issues': [], 'score': None,
-                'probability_correct_uncalibrated': round(prob, 4),
-            }
-        except Exception as exc:
+        if self.count_only:
+            # Hardware integration smoke test: no classifier/model dependency.
             message = {
                 'type': 'rep', 'exercise': 'squat', 'count': self.event_count,
                 'posture': 'unknown', 'issues': [], 'score': None,
-                'classification_error': str(exc),
+                'classification_status': 'disabled_count_only',
             }
+        else:
+            try:
+                if self.classifier is None:
+                    from squat_classification import classify
+                    classify_fn = classify
+                else:
+                    classify_fn = self.classifier
+                pred, prob = classify_fn(completed_rep.keypoints, self.artifact)
+                message = {
+                    'type': 'rep', 'exercise': 'squat', 'count': self.event_count,
+                    'posture': 'good' if pred == 1 else 'bad',
+                    'issues': [], 'score': None,
+                    'probability_correct_uncalibrated': round(prob, 4),
+                }
+            except Exception as exc:
+                message = {
+                    'type': 'rep', 'exercise': 'squat', 'count': self.event_count,
+                    'posture': 'unknown', 'issues': [], 'score': None,
+                    'classification_error': str(exc),
+                }
         message.update({
             'start_frame': completed_rep.start_frame,
             'end_frame': completed_rep.end_frame,
