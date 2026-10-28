@@ -83,7 +83,7 @@ class SquatPoseApp(GStreamerPoseEstimationApp):
             if not pipeline.startswith(prefix):
                 raise RuntimeError('Unexpected Hailo source pipeline; cannot safely insert file pacer')
             pipeline = (
-                prefix + ' identity name=squat_file_pacer sync=true signal-handoffs=false !'
+                prefix + ' identity name=squat_file_pacer sync=true signal-handoffs=false ! '
                 + pipeline[len(prefix):]
             )
             print('SQUAT_PACE_FILE=1: pacing frames by file timestamps.', flush=True)
