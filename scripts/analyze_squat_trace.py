@@ -48,7 +48,7 @@ def describe_candidates(rows):
         print('Person candidate details unavailable; update the runner and rerun.')
         return
 
-    print('\\n=== Person candidate tracker details ===')
+    print('\n=== Person candidate tracker details ===')
     windows = [(210, 240), (241, 267), (268, 307), (308, 330)]
     for lo, hi in windows:
         counts = Counter()
