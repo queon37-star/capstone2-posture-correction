@@ -20,6 +20,7 @@ This script writes events to JSONL only. It does NOT send HTTP POST to FastAPI.
 """
 
 import csv
+import json
 import math
 import os
 import sys
@@ -61,11 +62,34 @@ TRACE_FIELDS = (
     'hip_y', 'knee_angle', 'torso_length',
     'smoothed_hip_y', 'smoothed_knee_angle', 'relative_hip_depth',
     'start_votes', 'bottom_votes', 'finish_votes', 'peak_depth',
+    'person_candidates_json',
 )
 
 
 def _diagnostic_float(value):
     return f'{value:.4f}' if math.isfinite(value) else ''
+
+
+def _person_candidates_for_trace(detections):
+    """Read Hailo tracker metadata only in trace-enabled frames."""
+    candidates = []
+    for detection in detections:
+        if detection.get_label() != 'person':
+            continue
+        ids = detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
+        box = detection.get_bbox()
+        candidates.append({
+            'track_id': int(ids[0].get_id()) if len(ids) == 1 else None,
+            'confidence': round(float(detection.get_confidence()), 4),
+            'bbox': [
+                round(float(box.xmin()), 4),
+                round(float(box.ymin()), 4),
+                round(float(box.width()), 4),
+                round(float(box.height()), 4),
+            ],
+            'has_landmarks': bool(detection.get_objects_typed(hailo.HAILO_LANDMARKS)),
+        })
+    return json.dumps(candidates, ensure_ascii=False, separators=(',', ':'))
 
 
 class SquatPoseApp(GStreamerPoseEstimationApp):
@@ -185,6 +209,7 @@ def app_callback(pad, info, user_data):
         missing_before = counter.missing_count
         standing_hip_before = counter.stand_hip
         people = sum(det.get_label() == 'person' for det in detections)
+        candidates_json = _person_candidates_for_trace(detections)
         valid_before = user_data.bridge.valid_person_frames
 
     user_data.bridge.process(
@@ -222,6 +247,7 @@ def app_callback(pad, info, user_data):
             _diagnostic_float(depth),
             counter.start_votes, counter.bottom_votes,
             counter.finish_votes, _diagnostic_float(counter.peak_depth),
+            candidates_json,
         ))
 
     if (frame_id + 1) % 150 == 0:
