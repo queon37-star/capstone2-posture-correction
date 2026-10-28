@@ -49,7 +49,33 @@ from squat_stream_pipeline import SquatStreamPipeline
 
 
 class SquatPoseApp(GStreamerPoseEstimationApp):
-    """Optional single-pass file playback without changing Hailo's installed files."""
+    """Optional one-pass playback and no-overlay sink for hardware validation."""
+
+    def get_pipeline_string(self):
+        pipeline = super().get_pipeline_string()
+        if os.getenv('SQUAT_HEADLESS', '0') != '1':
+            return pipeline
+
+        # The actual installed pose class owns the DISPLAY_PIPELINE helper.
+        # Retrieve that exact helper so the tail matches the installed API,
+        # rather than assuming a hard-coded pipeline string.
+        display_fn = GStreamerPoseEstimationApp.get_pipeline_string.__globals__['DISPLAY_PIPELINE']
+        original_display = display_fn(
+            video_sink=self.video_sink,
+            sync=self.sync,
+            show_fps=self.show_fps,
+        )
+        if not pipeline.endswith(original_display):
+            raise RuntimeError('Unexpected Hailo display pipeline; refusing unsafe replacement')
+
+        # Keep inference, tracker and user callback; remove only display
+        # overlay, extra colorspace conversion and GUI rendering.
+        headless = pipeline[:-len(original_display)] + (
+            'fakesink name=squat_headless_sink sync=false async=false'
+        )
+        print('SQUAT_HEADLESS=1: bypass overlay, display convert and fpsdisplaysink.')
+        print('Effective pipeline:', headless, flush=True)
+        return headless
 
     def on_eos(self):
         # The installed GStreamerApp rewinds file sources by default.
@@ -148,7 +174,8 @@ def main():
         print(f'Classifier={model_path}; count and Good/Bad events saved to JSONL.')
     print(
         'Single-person input only; no server POST; '
-        f'single_pass={os.getenv("SQUAT_SINGLE_PASS", "0") == "1"}.'
+        f'single_pass={os.getenv("SQUAT_SINGLE_PASS", "0") == "1"} '
+        f'headless={os.getenv("SQUAT_HEADLESS", "0") == "1"}.'
     )
 
     with output_path.open('w', encoding='utf-8') as writer:
