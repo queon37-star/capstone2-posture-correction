@@ -108,3 +108,40 @@ python scripts/run_squat_hailo_pose.py \
   count, start/end frame, knee angle, peak hip depth를 확인한다.
 - 나중에 모델 추론 의존성과 scikit-learn 모델 호환성 문제가 해결되면
   `unset SQUAT_COUNT_ONLY`로 Good/Bad 모드를 실행한다.
+
+
+## PM_029 재현 테스트: 영상 1회 재생
+
+보드에서 `PM_029-Camera17-30fps.mp4`의 메타데이터가
+30 FPS, 3090프레임, 103초임을 확인했다.
+보드에 설치된 `GStreamerApp.on_eos()`는 파일 소스에서 기본적으로
+`seek_simple(..., 0)`을 호출하여 자동 반복한다.
+그 결과 3573 callback 프레임, 17 이벤트를 얻은 첫 테스트는
+1회 재생 결과로 간주할 수 없다.
+
+개발 브랜치의 `SquatPoseApp`은 `SQUAT_SINGLE_PASS=1`일 때만
+EOS에서 `shutdown()`을 호출해 반복 재생을 중지한다.
+기존 Hailo 설치 파일은 변경하지 않는다.
+
+~~~bash
+cd ~/hailo-rpi5-examples && source setup_env.sh
+cd ~/capstone2/pose_training && git pull --ff-only
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_FPS=30
+export SQUAT_OUTPUT="results/hailo/PM_029_single_pass.jsonl"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef"
+
+wc -l results/hailo/PM_029_single_pass.jsonl
+~~~
+
+예상 정상 종료 표시: `EOS: file finished; stopping without rewind.`
+이후 `DONE`에서 1회 재생의 callback 프레임 수와 유효 pose 수를 확인한다.
+**콜백 프레임 수는 원본 3090 프레임과 같다고 보장하지 않는다.**
+실제 영상 프레임 누락이 있으면 원본 프레임 ID와 콜백 frame_id는 서로 다르다.
+단일 재생 결과를 얻은 뒤에야 PC 결과(20회)와 비교한다.
