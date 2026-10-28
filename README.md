@@ -536,3 +536,70 @@ python -m pytest -q tests
 - **성능 기록:** **데이터셋/카메라/피험자 분리/모델/임계값/버퍼/측정 장치**를 함께 명시할 것.
 - **혼동 금지:** `195/195 카운팅` ≠ `86.2% Good/Bad 분류`; `PC 83.2 FPS` ≠ `R2130-12 실측 FPS`; `Crop10 학습 780행` ≠ `실제 운동 반복 780회`.
 - **실험 기록과 현재 구현 분리:** `docs/STREAMING.md`의 과거 프로토타입 설명과 이 README의 최신 실행 설정을 구분할 것.
+
+
+## 11. Pose 입력과 스쿼트 분석 파이프라인 분리 (2026-10-28, 리팩터링)
+
+- **변경 목적:** YOLOv8m-Pose 추출부와 SquatCounter → RepBoundaryBuffer → 180-feature LR 분류 → 'rep' JSON 출력을 분리해, 향후 Hailo-8의 COCO17 관절을 재사용 가능한 분석부에 연결.
+- **공통 모듈:** 'scripts/squat_stream_pipeline.py'의 'SquatStreamPipeline'을 사용. 프레임마다 원본 영상 **픽셀 좌표계**의 'float32 (17,3)' '[x,y,confidence]' 배열을 'push(kp, frame_id=...)'에 넣으면, 완성된 'rep' 이벤트 딕셔너리 목록을 반환함. 마지막에는 'flush()' 호출.
+- **분류기 분리:** 'scripts/squat_classification.py'의 'classify(seq, artifact)'가 기존 180개 특징/학습된 sklearn Pipeline을 그대로 사용. 새로운 학습은 하지 않음.
+- **기존 실행:** 'scripts/run_squat_video_stream_tunable.py'는 여전히 YOLO/수동 Anchor로 keypoint를 얻지만 분석과 JSON 생성은 공통 모듈에 위임. 'scripts/run_squat_latest.sh'의 'bottom_depth=0.20', 'pre_frames=16', 'post_frames=22' 설정은 유지.
+- **미완료:** Hailo 출력 형식·좌표 변환·수행자 선택·USB 카메라·AI→FastAPI POST·실기기 성능은 별도 통합 단계. 이 변경만으로 Hailo 추론이나 서버/앱 연결이 구현되는 것은 아님.
+
+예시 (이미 출력 형식을 검증한 Hailo 키포인트 배열이 있다고 가정):
+
+```python
+import joblib
+from squat_stream_pipeline import SquatStreamPipeline, missing_pose
+
+artifact = joblib.load("models/squat_plus_asymmetry180_crop10_all9.joblib")  # 자체 생성 파일만
+pipeline = SquatStreamPipeline(artifact=artifact, fps=30, bottom_depth=0.20,
+                               pre_frames=16, post_frames=22)
+
+# 프레임마다 한 번씩 수행. 검출 실패 시에도 프레임을 건너뛰지 않음.
+for frame_id, kp in source_of_selected_coco17_frames:
+    for event in pipeline.push(kp if kp is not None else missing_pose(), frame_id=frame_id):
+        print(event)  # 추후 서버 POST로 교체
+for event in pipeline.flush():
+    print(event)
+```
+
+테스트: 'python -m pytest -q tests/test_squat_stream_pipeline.py'; 기존 영상의 JSONL 이벤트를 리팩터링 전과 후에 비교해 최종 회귀 검증할 것.
+
+
+## 12. Hailo GStreamer Pose → COCO17 입력 어댑터 (2026-10-28)
+
+- **코드:** `scripts/hailo_pose_adapter.py`
+- **테스트:** `tests/test_hailo_pose_adapter.py` (HailoRT 없이 가짜 Detection/BBox/Point로 검증)
+- **기준:** [Hailo 공식 Pose callback](https://github.com/hailo-ai/hailo-rpi5-examples/blob/main/basic_pipelines/pose_estimation.py)의 Bounding Box 상대 좌표 변환 방식.
+- **입력:** `hailo.HAILO_DETECTION` 객체, 실제 **callback pad caps에서 얻은 영상 width/height**, `hailo.HAILO_LANDMARKS` 타입 상수
+- **출력:** `float32 (17, 3)` 배열, COCO17 인덱스 순서 `[x_pixel, y_pixel, confidence]`; 신뢰도 0.30 미만 관절 좌표는 `NaN`. 모델 학습이나 Hailo 라이브러리 import 불필요.
+- **1인 MVP 정책:** 화면에 'person' 검출이 정확히 한 명일 때만 변환. 0명·2명 이상이거나 landmarks가 없으면 `None` 반환; 호출자가 `missing_pose()`로 바꿔 매 프레임을 빠짐없이 파이프라인에 넣어야 함.
+
+실제 Hailo `app_callback` 내부에서 연결할 코드 예시 (**아직 R2130-12에서 실행 검증되지 않음**):
+
+```python
+from hailo_pose_adapter import single_person_coco17
+from squat_stream_pipeline import missing_pose
+
+# callback 내부. 이미 생성한 pipeline 객체를 재사용할 것.
+fmt, width, height = get_caps_from_pad(pad)
+if width is not None and height is not None:
+    roi = hailo.get_roi_from_buffer(buffer)
+    detections = roi.get_objects_typed(hailo.HAILO_DETECTION)
+    kp = single_person_coco17(
+        detections, width, height, landmarks_type=hailo.HAILO_LANDMARKS
+    )
+    if kp is None:
+        kp = missing_pose()
+    for event in pipeline.push(kp, frame_id=frame_id):
+        print(event)
+```
+
+**제한과 현장 확인:** 
+- 예시는 콜백 함수 전체가 아님. `pipeline`은 모델을 로드해 콜백 전에 초기화하고, `frame_id`는 0부터 프레임마다 순서대로 증가해야 함. 종료 시 `pipeline.flush()` 호출.
+- 영상 좌표는 예제 **callback 버퍼의 크기** 기준임. 카메라 원본 영상과 callback 버퍼 사이에 crop/letterbox/resize/rotate가 있다면 그 좌표 매핑부터 실제 보드에서 확인. 무조건 카메라 원본 해상도에 곱하면 안 됨.
+- 단일 인물/관절 없는 프레임 처리만 구현함. 추후 추적 ID 및 다중 인물 추적, 분류 성능 변화, 처리 FPS/지연시간은 보드에서 별도 검증.
+- 변환 함수와 단위 테스트를 추가한 것일 뿐 **GStreamer 실행 코드에 자동으로 연결되지는 않음**.
+
+로컬 검증: `python -m pytest -q tests/test_hailo_pose_adapter.py tests/test_squat_stream_pipeline.py`
