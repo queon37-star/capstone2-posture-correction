@@ -380,3 +380,70 @@ python scripts/analyze_squat_trace.py results/hailo/PM_029_trace_170_470.csv
 박스 위치·면적, 관절 유무를 비교한다. 이를 근거로
 동일한 대상의 ID를 유지하거나 위치 연속성을 활용하는 선택기를 설계한다.
 새 선택기는 기본값을 바꾸지 않고 A/B 테스트해야 한다.
+
+
+## 트래커 ID 기반 인물 선택 A/B 실험 (기존 STRICT 기본 유지)
+
+2026-10-28 추적 후보 로그:
+- PM_029 GT 반복 2 (210..330), **운동 대상 ID 2**가 121/121 프레임
+  연속 검출되고 관절 오브젝트가 존재했다.
+- 화면 왼쪽 후보 ID 3 (210..240)과 ID 4 (268..307)가
+  각각 31/40프레임 검출됐다. 평균 bbox 수평 중심이 약 0.03~0.04이고,
+  대상 ID 2의 중심은 약 0.39였다.
+- 프레임 280에서는 추가 객체 ID 4의 confidence가 0.7373로
+  운동 대상 ID 2의 0.6431보다 높았다. 최고 신뢰도 선택은 위험하다.
+- 기존 STRICT 정책은 다중 인원 시 모두 누락하여 프레임 282에서
+  15프레임 연속 누락으로 진행 중인 BOTTOM 반복을 재설정했다.
+
+**실험적 선택 옵션** `SQUAT_PERSON_SELECTION=tracked`:
+1. 처음에는 단일 인원으로 확실하게 검출된 프레임에서만 대상 ID를 잠근다.
+2. 다중 인원이 나올 경우 잠긴 Hailo track ID를 찾아 관절을 사용한다.
+3. 잠긴 ID가 보이지 않고 여러 사람이 있으면 선택하지 않는다.
+4. 잠긴 ID가 없어지고 정확히 한 명만 나타났을 때, 이전 인물
+   bbox 중심·면적과 충분히 가까우면 신규 추적 ID를 재획득한다.
+5. confidence 1순위/최대 면적 1순위로 무조건 대상을 교체하지 않는다.
+
+기본값 `SQUAT_PERSON_SELECTION=strict`로 기존 동작을 유지한다.
+카운터·Pose 모델·임계값은 변경하지 않았다.
+
+~~~bash
+cd ~/capstone2/pose_training
+git pull --ff-only
+
+# PC 또는 pytest가 설치된 환경에서 무하드웨어 단위 테스트:
+python -m pytest -q tests/test_hailo_pose_adapter.py tests/test_hailo_squat_bridge.py
+
+# 기존 Hailo 가상환경에서 (pytest 미설치 시 테스트는 PC에서):
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_BATCH_SIZE=4
+export SQUAT_PACE_FILE=1
+export SQUAT_FPS=30
+export SQUAT_PERSON_SELECTION=tracked
+export SQUAT_OUTPUT="results/hailo/PM_029_tracked_batch4.jsonl"
+export SQUAT_TRACE_OUTPUT="results/hailo/PM_029_tracked_trace.csv"
+export SQUAT_TRACE_RANGE="170:470"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+
+python scripts/analyze_squat_trace.py results/hailo/PM_029_tracked_trace.csv
+wc -l results/hailo/PM_029_tracked_batch4.jsonl
+~~~
+
+검증 항목:
+- `DONE`에서 callback 3090, 카운팅 20회가 되는지,
+  `multi_selected`가 증가하는지, 유효 pose가 늘어나는지 비교
+- 이벤트 프레임 범위를 Ground Truth 20개 구간에 맞춰 확인;
+  **20이라는 개수만 맞아도 오검출 가능성이 있으므로 충분하지 않다**
+- 대상 ID 2가 유지되는지 및 카운팅 동작이 GT 반복 2에서 실제로
+  복원됐는지 확인
+- FPS/지연 회귀 검사
+
+이것은 PM_029를 기준으로 한 검증적 프로토타입으로, 여러 사람이 실제로
+운동하거나 대상이 화면에서 사라질 때의 재식별 성능은 아직 검증되지 않았다.
+잘못된 사람으로 전환되는 위험이 있으므로 다른 피험자/영상에서도 검증해야 한다.
