@@ -12,6 +12,7 @@ Usage from repository root (the trusted model file must already be copied):
     export SQUAT_OUTPUT="results/hailo/live_reps.jsonl"
     export SQUAT_FPS="30"
     export SQUAT_SINGLE_PASS=1  # stop automatically at video EOS
+    export SQUAT_BATCH_SIZE=4   # optional; default stays 2
     python scripts/run_squat_hailo_pose.py
 
 This script writes events to JSONL only. It does NOT send HTTP POST to FastAPI.
@@ -52,6 +53,18 @@ class SquatPoseApp(GStreamerPoseEstimationApp):
     """Optional one-pass playback and no-overlay sink for hardware validation."""
 
     def get_pipeline_string(self):
+        # Hailo's base __init__ sets batch_size=2 and builds the pipeline
+        # immediately, so override here *before* constructing its hailonet.
+        requested_batch = os.getenv('SQUAT_BATCH_SIZE')
+        if requested_batch is not None:
+            try:
+                batch_size = int(requested_batch)
+            except ValueError as exc:
+                raise ValueError('SQUAT_BATCH_SIZE must be 1, 2, or 4') from exc
+            if batch_size not in (1, 2, 4):
+                raise ValueError('SQUAT_BATCH_SIZE must be 1, 2, or 4')
+            self.batch_size = batch_size
+        print(f'Hailo Pose batch_size={self.batch_size}', flush=True)
         pipeline = super().get_pipeline_string()
         if os.getenv('SQUAT_HEADLESS', '0') != '1':
             return pipeline
