@@ -1,7 +1,112 @@
 # 경량 AI 실시간 운동 자세 교정 시스템
 
 > 융합캡스톤디자인2 · 4조 · AI 분석 파트 개발 문서  
-> **기준일: 2026-10-14** · 현재 저장소는 **개발 PC에서 검증한 스쿼트 AI 프로토타입** 중심
+> **기준일: 2026-10-28** · PC에서의 반복별 Good/Bad 분석과 R2130-12/Hailo-8에서의 Pose·카운팅 실험을 구분하여 기록. **라이브 카메라→분류→서버→앱 통합은 미완료**.
+
+
+## 최신 개발 현황 (2026-10-28)
+
+> **핵심 요약:** reComputer AI R2130-12 + Hailo-8에서 **YOLOv8m-Pose의 30 FPS 저장 영상 입력 모의 처리**를 확인했다. 현재 보드 동작은 **카운팅 전용**이며 PM_029의 정답 스쿼트 20회 중 **19회 검출**한다. 누락 원인은 다중 인원 프레임을 버리는 수행자 선택 정책으로 분석했고, Tracking ID 선택 기능은 **구현됐지만 보드에서 아직 재검증하지 않았다**.
+
+### 현재 구현·검증 상태
+
+| 구성 | 구현/검증 상태 | 범위 및 근거 |
+|---|---|---|
+| PC Pose→FSM 카운팅 | **검증** | REHAB24-6 Camera17 9명/195회에서 195/195회 대응. **PC 실험 결과** |
+| PC 반복별 Good/Bad 분류 | **검증** | 180차원 특징 + Logistic Regression, LOPO 정확도 **86.2%(168/195)**. 전체 9명 재학습 모델과 LOPO 평가를 혼동하지 말 것 |
+| Hailo-8 YOLOv8m-Pose | **보드 실행 검증** | Debian 12, HailoRT 4.20.0, Tappas 3.31.0, COCO17 추출·카운팅 JSONL 출력 |
+| Headless + Batch 4 | **보드 실행 검증** | 3,090프레임 최대 처리량 **35.8 callback FPS** (86.3초). 화면 렌더링 제거, 모델은 동일 |
+| 30 FPS 타임스탬프 기반 파일 페이싱 | **보드 실행 검증** | **3,090/3,090프레임**, **103.4초**, **29.9 callback FPS**, **19회 검출** |
+| 1인 제한(`strict`) 추적 | **기준선 검증** | 다중 인원 프레임에서는 모든 후보를 제외; PM_029의 2번째 스쿼트 누락 |
+| Tracking ID 기반(`tracked`) 선택 | **코드 구현, 보드 검증 대기** | 잠긴 ID를 다중 인원에서도 선택. 첫 화면부터 여러 사람이 있으면 초기 대상 선정 불가 |
+| ROI 기반 초기 수행자 선정 | **미구현** | ROI·추적 안정성·사용자 선택 등 초기화 정책 검증 필요 |
+| 보드 Good/Bad 분류 | **미통합** | Hailo venv에는 scikit-learn/joblib 미설치; 현재 `SQUAT_COUNT_ONLY=1`로 카운팅만 실측 |
+| 라이브 카메라·판정 지연 | **미검증** | 파일 페이싱 결과는 실제 카메라 및 사용자 피드백 지연의 보증이 아님 |
+| 실패 유형 진단·교정 메시지 | **미구현/미검증** | Bad 반복을 대상으로 한 별도 원인 분석 단계 필요 |
+| AI→FastAPI→앱 실제 이벤트 연결 | **미통합** | 기존 서버·앱의 모의 이벤트 연동과 실제 Hailo AI 결과 전달은 별도 작업 |
+
+### Hailo-8 성능 최적화 결과
+
+측정 조건: **PM_029-Camera17-30fps.mp4**, 1회 재생, 1920×1080 원본, **30 FPS / 3,090프레임 / 103초**. 출력 콜백 이전의 Hailo 추론·추적·카운팅을 포함한다. 성능 비교 시 `--disable-sync` 및 화면 출력 여부를 구분한다.
+
+| 구성 | Callback FPS | 실행 시간 | 콜백 프레임 | 검출 반복 |
+|---|---:|---:|---:|---:|
+| 기존 화면 출력, Batch 2, 최대 속도 파일 처리 | 8.1 | 381.7초 | 3,090 | 19 |
+| Headless, Batch 2, 최대 속도 파일 처리 | 26.0 | 118.7초 | 3,090 | 19 |
+| **Headless, Batch 4, 최대 속도 파일 처리** | **35.8** | **86.3초** | **3,090** | **19** |
+| Headless, Batch 4, **30 FPS 파일 입력 페이싱** | **29.9** | **103.4초** | **3,090** | **19** |
+
+- Headless는 GStreamer의 `hailooverlay → videoconvert → fpsdisplaysink` 최종 화면 출력 구간을 `fakesink`로 대체한다. 추론·추적·카운팅은 그대로 수행한다.
+- Batch Size는 `SQUAT_BATCH_SIZE=1|2|4`로 지정하며, 기본값은 2다. HailoRT 단독 Batch 4 측정: 약 **35.729 FPS**, HW latency **86.139ms**. **HW latency는 실시간 카메라→앱 응답 지연이 아니다.**
+- `SQUAT_PACE_FILE=1`은 저장 영상의 타임스탬프를 따라 프레임을 공급한다. 3,090프레임 전부 콜백에 도착했고, 상대적인 시간 진행 오차가 지속적으로 증가하지 않았다. `FILE_PACE`의 상대 drift는 **절대 엔드투엔드 지연이 아니다**.
+- 35.8 FPS는 **저장 영상 최대 속도 처리량**이며, 29.9 FPS는 **30 FPS로 제한한 파일 입력에서의 결과**다. 카메라 캡처, 배치 대기, UI, 실제 Good/Bad 분류를 포함한 안정성은 이후 측정해야 한다.
+- 위 보드 측정은 모두 **`SQUAT_COUNT_ONLY=1`**이며, 반복 판정 `posture=unknown`은 의도한 결과다.
+
+### 스쿼트 20회 중 1회 누락: 원인 분석
+
+PM_029 정답은 20회(정상 10회·비정상 10회)지만 보드의 `strict` 모드는 **19회**다. 누락된 반복은 **2번째(210~330프레임)**.
+
+| 진단 항목 | 2번째 반복(210~330) | 비교: 3번째 반복(340~460) |
+|---|---:|---:|
+| 유효 관절 프레임 | **50/121** | **121/121** |
+| 다중 인원 프레임 | **71/121** | 0 |
+| 최장 연속 관절 누락 | **40프레임** (268~307) | 없음 |
+| FSM 결과 | **259프레임에 BOTTOM**, **282프레임에 초기화** | **436프레임에 반복 완료** |
+
+- `single_person_coco17()`은 사람 검출이 정확히 한 명일 때만 관절을 전달한다. 두 명이 검출되면 운동 대상이 보이더라도 프레임 전체를 `missing_pose()`로 처리한다.
+- 스쿼트 카운터는 유효 골반 좌표가 **15프레임 연속 누락**되면 진행 중인 반복과 초기 보정값을 초기화한다. **268~307프레임의 40프레임 연속 누락** 중 282프레임에 초기화돼 2번째 반복을 놓쳤다.
+- 추적 후보를 확인하니 운동 대상은 **Track ID 2**로 210~330 전 구간에 존재하고 관절 객체도 유지됐다. 화면 왼쪽에 **ID 3(210~240)**, **ID 4(268~307)**가 추가로 검출됐다.
+- 프레임 280에서 ID 2 confidence는 **0.6431**, ID 4는 **0.7373**이므로, 단순히 **가장 높은 confidence**로 수행자를 선택하는 방식도 불안정하다.
+- 따라서 이번 누락의 직접 원인은 **다중 인원 프레임을 버리는 수행자 선택 정책**이다. 성능 개선을 위해 카운팅 깊이 임계값을 임의로 변경하거나 모델을 재학습할 근거는 없다.
+
+### 해결 시도 및 남은 대상 선택 문제
+
+- **기존 기본값:** `SQUAT_PERSON_SELECTION=strict` — 단일 사람 검출일 때만 Pose 전달.
+- **실험 옵션:** `SQUAT_PERSON_SELECTION=tracked` — 단일 인원 프레임에서 Hailo Tracking ID를 잠그고, 이후 다중 인원에서는 같은 ID의 관절을 선택. ID 분실 시에는 단일 후보 및 이전 Bounding Box의 위치·면적 연속성을 확인해 제한적으로 재획득.
+- **검증 상태:** `tracked`는 코드와 단위 테스트 케이스를 추가했지만, **보드에서의 20회 복구·FPS·추적 안전성 결과는 아직 확인되지 않았다**.
+- **남은 구조적 문제:** 영상 **첫 프레임부터 여러 명이 계속 검출**되면 초기 대상을 선택하지 못한다. 첫 단일 검출 인물이 실제 운동 수행자라는 보장도 없다. 이를 위해 **설정 가능한 운동 영역(ROI) 기반 초기 선택 + 추적 ID 유지 + 모호할 때 사용자 직접 선택/보류** 정책이 필요하다.
+- 성능 검증은 **카운트 숫자 20회 일치뿐 아니라 실제 GT 20개 구간과 이벤트의 1:1 대응, 오검출, 프레임 누락, FPS 유지**까지 포함해야 한다.
+
+### 다음 개발 우선순위
+
+1. **`tracked` 모드 보드 A/B 검증** — `strict` 19회 기준선과 비교; PM_029 2번째 누락이 복구되는지, 다른 19회 및 FPS가 유지되는지 확인.
+2. **초기 수행자 선택 안정화** — ROI·사용자 선택·Tracking ID 유지/재획득 정책 구현. 영상 시작부터 다중 인원인 경우도 검증.
+3. **다른 영상으로 카운팅 검증** — REHAB24-6 다른 피험자, Camera18 등에서 반복 검출률·오검출·ID 전환 위험을 평가. PM_029 한 영상만 맞추는 임계값 최적화 금지.
+4. **PC Logistic Regression의 보드 이식** — 180-feature, Imputer/Scaler/계수 및 feature 순서를 보존한 NumPy 기반 추론 검토. PC sklearn 출력과 **동일한 반복 입력**에서 예측 일치 검증 후 Good/Bad 정확도 및 처리량 측정.
+5. **라이브 카메라·서버·앱 통합** — 카메라→Hailo→카운팅/Good-Bad→실제 HTTP POST→앱 피드백 연결. **반복 완료 후 3초 이내 사용자 피드백** 및 장시간 안정성 확인.
+6. **실패 유형 분석/교정 안내** — Bad 반복에 대해 2차 실패 유형 분류와 교정 메시지 제공. 지연·분류 품질·UI를 함께 평가.
+
+### Hailo 보드 실행 및 진단 재현
+
+기존 Hailo 예제의 가상환경에서 실행한다. **`tracked`는 아직 실험 단계이므로**, 아래 명령에서는 별도 설정을 하기 전까지 기본값 `strict`가 사용된다.
+
+```bash
+cd ~/hailo-rpi5-examples && source setup_env.sh
+cd ~/capstone2/pose_training
+git pull --ff-only
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_BATCH_SIZE=4
+export SQUAT_PACE_FILE=1
+export SQUAT_FPS=30
+export SQUAT_PERSON_SELECTION=strict
+export SQUAT_OUTPUT="results/hailo/PM_029_paced_batch4.jsonl"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+```
+
+**추적 A/B 실험:** 위 명령에서 `SQUAT_PERSON_SELECTION=tracked`와 서로 다른 `SQUAT_OUTPUT` 경로를 설정해 비교한다. 프레임별 추적 상태를 남기려면 `SQUAT_TRACE_OUTPUT=results/hailo/PM_029_tracking_trace.csv`, `SQUAT_TRACE_RANGE=170:470`도 설정하고, 종료 후 `python scripts/analyze_squat_trace.py results/hailo/PM_029_tracking_trace.csv`를 실행한다.
+
+- GitHub에 원본 MP4·데이터셋을 업로드하지 않는다.
+- 심화 구현·진단 방법 및 이전 하드웨어 실험 내역은 [Hailo 통합 문서](docs/HAILO_POSE_INTEGRATION.md) 참조.
+
+---
 
 ## 0. 통합 시 참고 사항
 
@@ -9,10 +114,10 @@
 - **AI 분석:** YOLOv8m-Pose(COCO17) → 수행자 추적 → SquatCounter(FSM) → 반복 구간 보완 → 180개 Feature → Logistic Regression → `rep` 이벤트.
   - **카운팅:** 골반 이동량·무릎 각도를 이용하는 규칙 기반 FSM.
   - **Good/Bad 분류:** 완료된 **스쿼트 1회 전체**의 특징으로 판단하는 이진 분류기. 프레임별 자세 오류 경고 모델은 아님.
-- **개발 상태 구분:** PC 저장 영상에서 AI 분석·평가 완료 / R2130-12에서 Hailo-8 Pose 샘플 추론 확인 / **실제 카메라→AI→서버→앱 통합 미완료**.
+- **개발 상태 구분:** PC 저장 영상에서 반복 카운팅·Good/Bad 분석 평가 완료 / **R2130-12에서는 YOLOv8m-Pose→COCO17→FSM 카운팅을 파일 입력으로 실행·검증** / 실제 카메라→보드 분류→서버→앱 전체 통합 미완료.
 - **서버 측 구현:** Raspberry Pi의 FastAPI + ngrok, 외부 WebSocket 접속, JSON 형식 검증, `systemd` 자동 실행·재시작. 현재는 `random_sender`의 **가상 AI 데이터**로 앱 연동을 확인함.
 - **앱 측 구현:** Expo/React Native, `wss` 연결·재연결, `rep` 횟수/정오 집계, `posture` 피드백 표시, 운동 종료 시 **휴대폰 SQLite 로컬 저장**.
-- **핵심 연동 사항:** 현재 AI 프로그램은 `JSONL` 파일에 결과 기록. **FastAPI로 실제 POST 전송하는 코드와 실제 Pose 입력 연결은 추가 구현 필요**. AI의 `issues=[]`, `score=null`은 현재 모델의 정상적인 출력 형식.
+- **핵심 연동 사항:** Hailo Pose 입력과 보드의 FSM/JSONL 출력은 연결·검증됨. **실제 AI 이벤트를 FastAPI로 POST하는 코드와 보드 Good/Bad 분류기는 미통합**. AI의 `issues=[]`, `score=null`은 현재 모델의 정상적인 출력 형식.
 - **현재 AI 실행 설정:** `models/squat_plus_asymmetry180_crop10_all9.joblib`, `bottom_depth=0.20`, 반복 앞 **16프레임**·뒤 **22프레임** 추가.
 
 ## 1. 전체 시스템과 현재 개발 범위
@@ -20,15 +125,15 @@
 ### 1-1. 프로젝트 전체 구성(목표와 현재 구현 구분)
 
 ```text
-[현재 PC에서 검증한 AI 처리 / 보드 통합 목표]
+[PC 분류 모델 / 보드의 카운팅 전용 Pose 통합 / 목표 구성 구분]
 카메라 또는 저장 영상
     ↓
-reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은 진행 필요
+reComputer AI R2130-12 + Hailo-8    ← 저장 영상 Pose·카운팅 검증, 라이브 입력은 미검증
     ├─ YOLOv8m-Pose / COCO17 관절 추정
-    ├─ 운동 수행자 선택·추적
+    ├─ 운동 수행자 선택·추적        ← strict 보드 검증, tracked 코드 구현/보드 미검증
     ├─ SquatCounter / 반복 구간 보완
-    ├─ 180개 특징 / Logistic Regression
-    └─ AI 반복 이벤트(JSON)             ← 현재 PC 구현은 JSONL 기록
+    ├─ 180개 특징 / Logistic Regression  ← PC 검증, 보드 통합 미완료
+    └─ AI 반복 이벤트(JSONL)            ← 보드 카운팅 전용은 posture=unknown
            ↓ HTTP POST 연동 어댑터 개발 필요
 [서버: 현재 Raspberry Pi에서 별도 동작]
     FastAPI → JSON 검사 → 이벤트 기록 / WebSocket 전송
@@ -41,7 +146,7 @@ reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은
 
 | 담당 영역 | 중간 보고서 기준 확인된 구현 | AI와 연결할 때 필요한 작업 |
 |---|---|---|
-| **AI 분석** | PC 저장 영상에서 Pose → 추적 → 카운팅 → Good/Bad → JSONL 출력; R2130-12에서 Hailo Pose 샘플 작동 확인 | 라이브 카메라·Hailo 출력 연결, 서버에 이벤트 POST |
+| **AI 분석** | PC에서 Pose → 수행자 선택 → 카운팅 → Good/Bad → JSONL; R2130-12에서 Hailo Pose→카운팅 연결, 30 FPS 파일 페이싱·19/20회 실측 | 추적 안정화·Good/Bad 보드 이식·라이브 카메라 입력·서버 이벤트 POST |
 | **서버(손준표)** | Raspberry Pi + FastAPI + ngrok 고정 주소, 외부 WSS 수신 확인, JSON 스키마 검사, `systemd` 자동 실행·재시작, 테스트 이벤트 송신 | 실제 AI 이벤트 수신·검증 및 보드/서버 배치 확정 |
 | **앱(임태빈)** | Expo 앱의 WebSocket 수신·재연결, 스쿼트·푸시업 선택 UI, 운동 종료 시 SQLite 로컬 저장 | 실제 AI 출력 검증, 오류 코드·운동 필터링·세션 정책 확정 |
 
@@ -65,7 +170,7 @@ reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은
 ```
 
 - **온라인(순차) 분석 방식:** 원본 영상의 프레임을 순서대로 처리하며 반복 구간을 자동 검출. 추론 과정에서는 정답 구간(`Segmentation.csv`)을 사용하지 않음.
-- **주의:** PC의 저장 영상 처리 방식이 구현되었다는 의미이며, **라이브 USB 카메라와 R2130-12에서의 실시간 동작이 검증되었다는 의미는 아님**.
+- **주의:** 이 문단은 PC의 완전한 Good/Bad 처리 경로다. R2130-12에서는 **저장 동영상→Hailo Pose→카운팅**까지 실측했고, **라이브 USB 카메라·보드 Good/Bad·사용자 피드백 절대 지연**은 미검증이다.
 
 ## 2. 데이터셋과 Keypoint 형식
 
@@ -114,7 +219,7 @@ reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은
 - 후보 선택 기준: Anchor와의 거리, 이전 선택 박스와의 거리 및 IoU(겹침), 검출 신뢰도.
 - 검출 신뢰도가 가장 높은 사람을 무조건 선택하지 않음.
 - 추적 대상이 검출되지 않으면 해당 프레임 Keypoint를 결측값으로 처리.
-- **제약:** REHAB24-6의 각 영상에서 수행자를 사전에 수동 지정함. 실제 사용자 환경에서 자동 대상 선택·재식별(Re-ID)은 미구현.
+- **PC 추적 제약:** REHAB24-6의 각 영상에서 수행자를 사전에 수동 지정함. **보드 추적은 별도 구현**으로 `strict` 기준선과 실험적 `tracked` 옵션이 존재한다. 초기 다중 인원 자동 선택과 일반적인 Re-ID는 미구현.
 - **코드:** `scripts/select_subjects.py`, `scripts/extract_all_squats_tracked.py`, `configs/rehab24_squat_camera17_subjects.json`.
 
 ## 3. 스쿼트 카운팅: SquatCounter(FSM)
@@ -320,8 +425,8 @@ reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은
 ### 6-3. 속도·메모리(측정 환경 구분)
 
 - **개발 PC(RTX 4070 Ti):** 저장된 영상 1,200프레임 처리에서 **83.2 FPS**. PC 기반 측정치.
-- **R2130-12 + Hailo-8:** Pose 샘플 추론 실행 확인, 샘플 구동 시 시스템 RAM 사용량 **약 289.2 MiB 증가**(중간 발표 측정).
-- **아직 미측정:** R2130-12에서 실제 카메라 입력을 포함한 전체 AI 파이프라인 FPS, 반복 완료→분류→앱 표시 지연, 장시간 메모리·안정성.
+- **R2130-12 + Hailo-8:** Pose 샘플 추론 실행 확인, 샘플 구동 시 시스템 RAM 사용량 **약 289.2 MiB 증가**(중간 발표 측정). **추가 실측:** Headless Batch 2 **26.0 FPS**, Batch 4 **35.8 FPS**(파일 최대 속도), 30 FPS 파일 페이싱 Batch 4 **29.9 FPS / 3,090프레임 / 19회**. 상세 조건은 상단 '최신 개발 현황' 참고.
+- **아직 미측정:** R2130-12 **실제 카메라** 입력에서의 안정적인 처리율, 보드 Good/Bad 분류 통합 후 처리율, 반복 완료→분류→앱 표시 절대 지연, 장시간 메모리·안정성.
 - **지연 특성:** 종료 후 22프레임(30 FPS에서 약 0.73초) 확보가 필요하므로 FPS와 별개로 Good/Bad 출력이 늦어질 수 있음.
 
 ## 7. AI ↔ 서버 ↔ 앱 이벤트 형식과 통합 방법
@@ -448,7 +553,7 @@ reComputer AI R2130-12 + Hailo-8    ← 실제 카메라 기반 전체 연결은
 ### 8-1. 개발 환경
 
 - **PC/WSL:** `capstone_pose` Conda 환경, Python 3, Ultralytics, PyTorch, OpenCV, NumPy, scikit-learn, joblib 등.
-- **R2130-12:** Debian 12(Bookworm) 기반 ARM64, HailoRT 4.20.0 환경에서 Hailo 샘플 구동 확인.
+- **R2130-12:** Debian 12(Bookworm) 기반 ARM64, HailoRT 4.20.0 / Tappas 3.31.0. Hailo 샘플 및 자체 YOLOv8m-Pose→FSM 카운팅 파이프라인 실행 확인. Hailo 가상환경에는 현재 NumPy 1.24.2가 있으나 scikit-learn/joblib은 없음.
 - **환경 목록:** `requirements-wsl.txt`(PC 환경 기록용; ARM64에 그대로 설치하는 용도가 아님).
 - **추가로 필요한 파일:** REHAB24-6 원본 영상 및 정답 파일, `yolov8m-pose.pt`(일반 WSL 추론용 YOLO 가중치). 원본 MP4·모델 가중치 중 일부는 GitHub에 없음.
 
@@ -473,16 +578,23 @@ python -m pytest -q tests
 - **Anchor 설정:** `configs/rehab24_squat_camera17_subjects.json`.
 - **최신 실행 스크립트:** `scripts/run_squat_latest.sh`는 `--model ...crop10_all9.joblib`, `--bottom-depth 0.20`, `--pre-frames 16`, `--post-frames 22`를 지정하여 기존 실험 실행기에 전달.
 - **실행 옵션으로 값을 변경하면 평가 당시 조건과 달라질 수 있음.** 변경된 옵션은 실험 기록에 함께 기재.
-- **테스트 현황:** 2026-10-14 기준 `13 passed`. 단위 테스트가 영상 전체 성능이나 실제 보드 동작을 보장하지는 않음.
+- **테스트 현황:** 2026-10-14 당시 `13 passed` 기록. 이후 어댑터·브리지·추적 선택 관련 테스트가 추가됐으나 최신 전체 테스트 통과 건수는 이 README에서 확인되지 않았음. 단위 테스트는 실제 보드 동작을 보장하지 않음.
 
 ### 8-3. 저장소의 핵심 파일
 
 | 경로 | 역할 |
 |---|---|
-| `scripts/run_squat_latest.sh` | 최신 모델·임계값·버퍼 설정 실행 래퍼 |
+| `scripts/run_squat_latest.sh` | PC 최신 모델·임계값·버퍼 설정 실행 래퍼 |
 | `scripts/run_squat_video_stream_tunable.py` | 원본 MP4를 프레임별로 분석해 반복 이벤트 출력 |
 | `scripts/stream_squat_core.py` | 골반 이동·무릎 각도 기반 상태 전이 카운터 |
 | `scripts/squat_rep_buffer.py` | 반복 구간 앞뒤 프레임 보완 |
+| `scripts/squat_stream_pipeline.py` | COCO17 프레임 입력→FSM·반복 구간 보완→이벤트 공통 파이프라인 |
+| `scripts/squat_classification.py` | PC 학습된 180-feature 분류기 추론 |
+| `scripts/hailo_pose_adapter.py` | Hailo detection/landmark→COCO17 및 실험적 `TrackedPersonSelector` |
+| `scripts/hailo_squat_bridge.py` | GStreamer 검출→관절 선택→공통 카운터/JSONL 브리지 |
+| `scripts/run_squat_hailo_pose.py` | 보드 YOLOv8m-Pose 실행, Headless·Batch·파일 페이싱·진단 옵션 |
+| `scripts/analyze_squat_trace.py` | 누락된 반복 구간의 프레임별 인원·추적 ID·FSM 상태 진단 |
+| `docs/HAILO_POSE_INTEGRATION.md` | 보드 Hailo 통합, 최적화 및 누락 원인 분석 실험 기록 |
 | `scripts/extract_all_squats_tracked.py` | 학습·평가용 관절 시퀀스 추출 및 대상 추적 |
 | `scripts/train_squat_baseline.py` | 기본 16개 신호 / 160개 특징 및 초기 분류기 실험 |
 | `scripts/train_squat_extended.py` | 비대칭 신호 포함 확장 특징 계산 및 실험 |
@@ -502,11 +614,14 @@ python -m pytest -q tests
 
 ### 9-1. AI/보드 통합
 
-- [ ] Hailo-8 Pose 결과를 현재 코드가 기대하는 **COCO17 `(17, 3)`의 `(x, y, confidence)` 형식**으로 변환.
-- [ ] Hailo 출력의 좌표계·정규화 방식·관절 순서·신뢰도 기준 확인. **PC Ultralytics 출력과 다르면 반드시 변환**.
-- [ ] 여러 사람 중 분석 대상 자동 선택 및 추적, 가림·화면 이탈 시 동작 확인.
-- [ ] 기존 SquatCounter와 Crop10 분류기 연결. `feature_names` 순서 및 전처리 유지.
-- [ ] USB 카메라 입력에서 전체 FPS·메모리·종료 후 판정 지연 실측.
+- [x] Hailo-8 Pose 검출 결과를 **COCO17 `(17, 3)`의 `(x, y, confidence)`**로 변환해 공통 FSM에 연결. **파일 입력/카운팅 전용 보드 실측 기준**.
+- [x] Headless + Batch 4 + 30 FPS 파일 페이싱에서 **3,090프레임 전부 콜백 처리** 및 19회 검출 확인.
+- [x] 2번째 스쿼트 누락 원인 분석: **다중 인원 프레임 제외 → 15프레임 누락 → FSM 초기화**.
+- [ ] 새 `tracked` 수행자 선택 옵션의 **보드 A/B 검증**과 20개 GT 구간의 이벤트 대응 확인.
+- [ ] ROI 기반 초기 수행자 선정 및 ID 전환·가림·화면 이탈 시 대상 유지/보류 로직 검증.
+- [ ] 실제 영상의 오버레이/좌표 매핑 검증 및 다른 피험자·카메라에서 추적 회귀 평가.
+- [ ] Crop10/180-feature Good/Bad 분류기를 보드에 연결하고 `feature_names` 순서 및 Imputer/Scaler 전처리의 PC 예측 일치 확인.
+- [ ] 실제 USB/CSI 카메라 입력에서 전체 FPS·메모리·지연 누적·종료 후 판정 지연 실측.
 
 ### 9-2. 서버·앱 연동
 
@@ -525,7 +640,7 @@ python -m pytest -q tests
 - [ ] 처음 보는 사용자와 실제 카메라 영상에서 검증.
 - [ ] 스쿼트 외 움직임에서의 **잘못된 카운팅(False Reps)** 측정.
 - [ ] Good 오경고·Bad 놓침을 피험자·카메라 각도별로 분석.
-- [ ] 실제 오류 종류별 라벨이 확보되면 `issues` 진단·교정 문구 기능 확장.
+- [ ] Bad 판정 시 별도 실패 유형 분석과 `issues` 교정 문구 생성 기능 구현; 오류 종류별 라벨 확보, 2차 분류 품질·지연 검증.
 - [ ] 푸시업 등 운동 종류 확장 시 별도 카운터·특징·학습 데이터 설계.
 
 ## 10. 데이터·모델·Git 관리 주의사항
@@ -544,7 +659,7 @@ python -m pytest -q tests
 - **공통 모듈:** 'scripts/squat_stream_pipeline.py'의 'SquatStreamPipeline'을 사용. 프레임마다 원본 영상 **픽셀 좌표계**의 'float32 (17,3)' '[x,y,confidence]' 배열을 'push(kp, frame_id=...)'에 넣으면, 완성된 'rep' 이벤트 딕셔너리 목록을 반환함. 마지막에는 'flush()' 호출.
 - **분류기 분리:** 'scripts/squat_classification.py'의 'classify(seq, artifact)'가 기존 180개 특징/학습된 sklearn Pipeline을 그대로 사용. 새로운 학습은 하지 않음.
 - **기존 실행:** 'scripts/run_squat_video_stream_tunable.py'는 여전히 YOLO/수동 Anchor로 keypoint를 얻지만 분석과 JSON 생성은 공통 모듈에 위임. 'scripts/run_squat_latest.sh'의 'bottom_depth=0.20', 'pre_frames=16', 'post_frames=22' 설정은 유지.
-- **미완료:** Hailo 출력 형식·좌표 변환·수행자 선택·USB 카메라·AI→FastAPI POST·실기기 성능은 별도 통합 단계. 이 변경만으로 Hailo 추론이나 서버/앱 연결이 구현되는 것은 아님.
+- **2026-10-28 이후 진행:** Hailo detection/landmark→COCO17 변환과 보드의 카운팅 전용 실행·FPS 측정까지 연결됨. 다만 **보드 Good/Bad 분류, 초기 다중 인원 선택, 라이브 카메라, AI→FastAPI POST**는 별도 과제다.
 
 예시 (이미 출력 형식을 검증한 Hailo 키포인트 배열이 있다고 가정):
 
@@ -576,7 +691,7 @@ for event in pipeline.flush():
 - **출력:** `float32 (17, 3)` 배열, COCO17 인덱스 순서 `[x_pixel, y_pixel, confidence]`; 신뢰도 0.30 미만 관절 좌표는 `NaN`. 모델 학습이나 Hailo 라이브러리 import 불필요.
 - **1인 MVP 정책:** 화면에 'person' 검출이 정확히 한 명일 때만 변환. 0명·2명 이상이거나 landmarks가 없으면 `None` 반환; 호출자가 `missing_pose()`로 바꿔 매 프레임을 빠짐없이 파이프라인에 넣어야 함.
 
-실제 Hailo `app_callback` 내부에서 연결할 코드 예시 (**아직 R2130-12에서 실행 검증되지 않음**):
+실제 Hailo `app_callback` 내부에서 연결할 **최소 개념 예시**(현재는 `scripts/run_squat_hailo_pose.py`/`hailo_squat_bridge.py`에서 보드 실행·검증됨):
 
 ```python
 from hailo_pose_adapter import single_person_coco17
@@ -599,7 +714,7 @@ if width is not None and height is not None:
 **제한과 현장 확인:** 
 - 예시는 콜백 함수 전체가 아님. `pipeline`은 모델을 로드해 콜백 전에 초기화하고, `frame_id`는 0부터 프레임마다 순서대로 증가해야 함. 종료 시 `pipeline.flush()` 호출.
 - 영상 좌표는 예제 **callback 버퍼의 크기** 기준임. 카메라 원본 영상과 callback 버퍼 사이에 crop/letterbox/resize/rotate가 있다면 그 좌표 매핑부터 실제 보드에서 확인. 무조건 카메라 원본 해상도에 곱하면 안 됨.
-- 단일 인물/관절 없는 프레임 처리만 구현함. 추후 추적 ID 및 다중 인물 추적, 분류 성능 변화, 처리 FPS/지연시간은 보드에서 별도 검증.
-- 변환 함수와 단위 테스트를 추가한 것일 뿐 **GStreamer 실행 코드에 자동으로 연결되지는 않음**.
+- 단일 인물 정책(`strict`) 외에 Hailo ID 기반 `tracked` 선택기도 구현했으나 **보드 A/B 성능은 아직 검증하지 않음**. 보드의 파일 입력 FPS는 측정됐으며, 라이브 카메라/분류·앱 지연은 미측정.
+- 현재 변환 함수는 `run_squat_hailo_pose.py`의 GStreamer 콜백과 `HailoSquatBridge`에 연결된 상태이며, **카운팅 전용 모드로 장비에서 확인됨**.
 
 로컬 검증: `python -m pytest -q tests/test_hailo_pose_adapter.py tests/test_squat_stream_pipeline.py`
