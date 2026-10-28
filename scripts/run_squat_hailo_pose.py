@@ -13,6 +13,7 @@ Usage from repository root (the trusted model file must already be copied):
     export SQUAT_FPS="30"
     export SQUAT_SINGLE_PASS=1  # stop automatically at video EOS
     export SQUAT_BATCH_SIZE=4   # optional; default stays 2
+    export SQUAT_PACE_FILE=1     # optional: pace timestamped file at playback rate
     python scripts/run_squat_hailo_pose.py
 
 This script writes events to JSONL only. It does NOT send HTTP POST to FastAPI.
@@ -66,6 +67,27 @@ class SquatPoseApp(GStreamerPoseEstimationApp):
             self.batch_size = batch_size
         print(f'Hailo Pose batch_size={self.batch_size}', flush=True)
         pipeline = super().get_pipeline_string()
+
+        if os.getenv('SQUAT_PACE_FILE', '0') == '1':
+            if self.source_type != 'file':
+                raise ValueError('SQUAT_PACE_FILE=1 is for timestamped video files only')
+            # Use the actual installed source builder and verify its exact
+            # prefix before inserting a clock-synchronizing identity element.
+            source_fn = GStreamerPoseEstimationApp.get_pipeline_string.__globals__['SOURCE_PIPELINE']
+            source_pipeline = source_fn(
+                video_source=self.video_source,
+                video_width=self.video_width,
+                video_height=self.video_height,
+            )
+            prefix = source_pipeline + ' !'
+            if not pipeline.startswith(prefix):
+                raise RuntimeError('Unexpected Hailo source pipeline; cannot safely insert file pacer')
+            pipeline = (
+                prefix + ' identity name=squat_file_pacer sync=true signal-handoffs=false !'
+                + pipeline[len(prefix):]
+            )
+            print('SQUAT_PACE_FILE=1: pacing frames by file timestamps.', flush=True)
+
         if os.getenv('SQUAT_HEADLESS', '0') != '1':
             return pipeline
 
@@ -105,12 +127,27 @@ class SquatCallbackData(app_callback_class):
         super().__init__()
         self.bridge = bridge
         self.started_at = time.perf_counter()
+        self.first_callback_at = None
+        self.first_frame_pts = None
+        self.pace_drift_ms = []
 
 
 def app_callback(pad, info, user_data):
     buffer = info.get_buffer()
     if buffer is None:
         return Gst.PadProbeReturn.OK
+
+    if os.getenv('SQUAT_PACE_FILE', '0') == '1':
+        # Measure relative pace drift, not absolute camera-to-feedback latency.
+        pts = buffer.pts
+        if pts != Gst.CLOCK_TIME_NONE:
+            now = time.perf_counter()
+            if user_data.first_frame_pts is None:
+                user_data.first_frame_pts = pts
+                user_data.first_callback_at = now
+            file_elapsed_ms = (pts - user_data.first_frame_pts) / 1_000_000
+            callback_elapsed_ms = (now - user_data.first_callback_at) * 1000
+            user_data.pace_drift_ms.append(callback_elapsed_ms - file_elapsed_ms)
 
     # The frame count starts at 1 after increment(); use zero-based frame IDs.
     user_data.increment()
@@ -200,6 +237,20 @@ def main():
         finally:
             bridge.finish()
             elapsed = max(time.perf_counter() - user_data.started_at, 1e-6)
+            if os.getenv('SQUAT_PACE_FILE', '0') == '1':
+                if user_data.pace_drift_ms:
+                    drifts = sorted(user_data.pace_drift_ms)
+                    p95 = drifts[int(0.95 * (len(drifts) - 1))]
+                    print(
+                        f'FILE_PACE: timestamped={len(drifts)}/{bridge.processed_frames} '
+                        f'final_relative_drift={user_data.pace_drift_ms[-1]:.1f}ms '
+                        f'p95_relative_drift={p95:.1f}ms '
+                        f'max_relative_drift={drifts[-1]:.1f}ms '
+                        '(relative to first callback; NOT end-to-end latency)',
+                        flush=True,
+                    )
+                else:
+                    print('FILE_PACE: no valid buffer timestamps; check file source', flush=True)
             print(
                 f'DONE: {bridge.processed_frames} frames, '
                 f'{pipeline.event_count} complete reps, '
