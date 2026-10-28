@@ -189,3 +189,61 @@ wc -l results/hailo/PM_029_headless.jsonl
 8.1 callback FPS. 처리 시간과 이벤트 수가 어떻게 변하는지 확인한다.
 `SQUAT_HEADLESS`만 켜도 동일한 3090프레임이 콜백에
 도달해야 비교 가능하다. 실제 카메라의 엔드투엔드 지연은 별도 평가 필요.
+
+
+## Hailo-8 batch 크기 A/B 실험 (2026-10-28)
+
+설치된 `GStreamerPoseEstimationApp.__init__()`은 `self.batch_size=2`,
+`video_width=1280`, `video_height=720`을 지정하고
+바로 `create_pipeline()`을 호출한다. `INFERENCE_PIPELINE`은
+`hailonet batch-size={batch_size}`로 이 값을 사용한다.
+
+개발 브랜치의 `SquatPoseApp.get_pipeline_string()`에서
+`SQUAT_BATCH_SIZE=1|2|4`를 받아 **파이프라인 문자열 생성 전**에
+`self.batch_size`를 변경하도록 했다. 옵션 미설정 시 기존 값 2 유지.
+이 방법은 Hailo 설치 파일을 변경하지 않는다.
+
+HailoRT CLI 단독 측정 (YOLOv8m-Pose; 같은 HEF):
+| Batch | hw_only FPS | streaming FPS | HW latency |
+|---|---:|---:|---:|
+| 1 | 16.3315 | 16.3264 | 50.765 ms |
+| 2 | 25.988 | 25.9876 | 60.9056 ms |
+| 4 | 35.729 | 35.729 | 86.1391 ms |
+
+앱 Batch 2 / `SQUAT_HEADLESS=1` / 단일 영상 / `--disable-sync`:
+3090/3090 콜백 프레임, 19회 검출, 2692 유효 pose 프레임,
+118.7초, callback 26.0 FPS. 동일 영상 기존 표시 파이프라인은
+381.7초, callback 8.1 FPS였다.
+
+**다음 실험: 배치 설정 외에는 모두 동일하게 유지하고 Batch 4 검증.**
+
+~~~bash
+cd ~/capstone2/pose_training
+git pull --ff-only
+python -m py_compile scripts/run_squat_hailo_pose.py
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_BATCH_SIZE=4
+export SQUAT_FPS=30
+export SQUAT_OUTPUT="results/hailo/PM_029_headless_batch4.jsonl"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+
+wc -l results/hailo/PM_029_headless_batch4.jsonl
+~~~
+
+실행 시작 시 출력된 `Hailo Pose batch_size=4` 및 실제
+파이프라인 내 `hailonet ... batch-size=4`를 확인한다.
+`DONE`에서 3090 프레임, 유효 pose 수, 반복 횟수,
+wall time, callback FPS를 확인한다.
+
+배치 증가로 처리량이 높아져도 **실시간 입력→판정 지연**이
+낮다는 뜻은 아니다. 실제 카메라 지연과 1차/2차 피드백 지연을
+별도로 측정해야 한다. 또한 NPU 단독 35.729 FPS가
+앱 전체 35.729 FPS를 보장하지 않는다.
