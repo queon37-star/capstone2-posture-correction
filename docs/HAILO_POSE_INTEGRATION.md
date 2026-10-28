@@ -145,3 +145,47 @@ wc -l results/hailo/PM_029_single_pass.jsonl
 **콜백 프레임 수는 원본 3090 프레임과 같다고 보장하지 않는다.**
 실제 영상 프레임 누락이 있으면 원본 프레임 ID와 콜백 frame_id는 서로 다르다.
 단일 재생 결과를 얻은 뒤에야 PC 결과(20회)와 비교한다.
+
+
+## A/B 실험: 영상 오버레이·디스플레이 제거
+
+장비에서 `get_pipeline_string()`을 확인한 결과,
+`SOURCE_PIPELINE`의 1280x720 RGB 전처리, `INFERENCE_PIPELINE_WRAPPER`,
+`TRACKER_PIPELINE`, `USER_CALLBACK_PIPELINE`, `DISPLAY_PIPELINE` 순으로 연결된다.
+`DISPLAY_PIPELINE`에 `hailooverlay`, `videoconvert`,
+`fpsdisplaysink`가 포함되어 있다.
+
+2026-10-28 개발 브랜치에 `SQUAT_HEADLESS=1`을 추가했다.
+이는 파이프라인 끝의 `DISPLAY_PIPELINE`만
+`fakesink name=squat_headless_sink sync=false async=false`로 교체한다.
+실제 설치된 `DISPLAY_PIPELINE` 함수를 사용해 원래 문자열을 계산하고
+꼬리 일치 여부를 확인하므로 Hailo 예제 패키지는 수정하지 않는다.
+Hailo 추론, 사람 추적, Python 콜백, 카운팅은 그대로 유지한다.
+화면 출력은 제공하지 않는다.
+
+~~~bash
+cd ~/capstone2/pose_training
+git pull --ff-only
+python -m py_compile scripts/run_squat_hailo_pose.py
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_FPS=30
+export SQUAT_OUTPUT="results/hailo/PM_029_headless.jsonl"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+
+wc -l results/hailo/PM_029_headless.jsonl
+~~~
+
+비교 기준: 동일 PM_029 한 번 재생, sync 해제, YOLOv8m-Pose,
+1280x720 전처리, 30 FPS 가정, `SQUAT_COUNT_ONLY=1`.
+이전 표시 파이프라인 결과: callback 3090프레임, 19 이벤트, 381.7초,
+8.1 callback FPS. 처리 시간과 이벤트 수가 어떻게 변하는지 확인한다.
+`SQUAT_HEADLESS`만 켜도 동일한 3090프레임이 콜백에
+도달해야 비교 가능하다. 실제 카메라의 엔드투엔드 지연은 별도 평가 필요.
