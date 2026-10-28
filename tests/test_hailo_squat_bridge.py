@@ -79,6 +79,10 @@ def test_frame_by_frame_bridge_and_jsonl():
     assert (bridge.processed_frames, bridge.valid_person_frames,
             bridge.missing_person_frames) == (3, 1, 2)
     assert pipeline.flushed
+    assert (bridge.zero_person_frames, bridge.single_person_frames,
+            bridge.multi_person_frames) == (1, 1, 1)
+    assert bridge.single_person_without_pose_frames == 0
+    assert bridge.missing_caps_frames == 0
     assert [json.loads(line)['count'] for line in writer.getvalue().splitlines()] == [1, 2]
 
 
@@ -93,3 +97,7 @@ def test_missing_caps_or_landmarks_are_missing_pose_not_dropped_frames():
     assert bridge.processed_frames == bridge.missing_person_frames == 2
     assert bridge.valid_person_frames == 0
     assert all(np.isnan(kp[:, :2]).all() for _, kp in pipeline.seen)
+    assert (bridge.zero_person_frames, bridge.single_person_frames,
+            bridge.multi_person_frames) == (0, 2, 0)
+    assert bridge.missing_caps_frames == 1
+    assert bridge.single_person_without_pose_frames == 1
