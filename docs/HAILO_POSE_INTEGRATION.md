@@ -247,3 +247,53 @@ wall time, callback FPS를 확인한다.
 낮다는 뜻은 아니다. 실제 카메라 지연과 1차/2차 피드백 지연을
 별도로 측정해야 한다. 또한 NPU 단독 35.729 FPS가
 앱 전체 35.729 FPS를 보장하지 않는다.
+
+
+## 단계 2: 30 FPS 파일 입력 페이싱 검증
+
+Headless + Batch 4 + 파일 전체 처리의 실측 결과:
+- 원본 `PM_029-Camera17-30fps.mp4`: 1920x1080, 30 FPS, 3090프레임, 103초
+- callback 3090프레임, 19회 검출, 2692 유효 pose, 86.3초, 35.8 FPS
+- HailoRT Batch 4: HW-only 35.729 FPS, HW latency 86.139 ms
+
+이것은 **파일을 최대 처리 속도로 읽은 결과**이므로 실제
+카메라의 일정한 30 FPS 도착과는 다르다.
+
+`SQUAT_PACE_FILE=1`은 파일 소스의 전처리와 추론 사이에
+GStreamer `identity sync=true`를 추가하여 프레임 타임스탬프를
+파이프라인 시계에 맞춘다. `SQUAT_SINGLE_PASS=1`로 1회만 재생하고,
+`SQUAT_HEADLESS=1`로 화면 출력은 하지 않는다. 모델, HEF, 배치 크기,
+기존 카운터는 변경하지 않는다. 표준 Hailo 예제 파일도 수정하지 않는다.
+
+~~~bash
+cd ~/capstone2/pose_training
+git pull --ff-only
+python -m py_compile scripts/run_squat_hailo_pose.py
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_BATCH_SIZE=4
+export SQUAT_PACE_FILE=1
+export SQUAT_FPS=30
+export SQUAT_OUTPUT="results/hailo/PM_029_paced_batch4.jsonl"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+
+wc -l results/hailo/PM_029_paced_batch4.jsonl
+~~~
+
+`DONE`에서 callback 프레임 수, wall time, 반복 검출을 확인한다.
+`FILE_PACE` 지표의 relative_drift는 첫 callback 시각/첫 PTS를
+기준으로 한 상대적인 진행 오차이므로 **카메라 입력→피드백
+절대 지연을 뜻하지 않는다**. 기록된 buffer PTS가 유효하지 않으면
+이 측정은 건너뛴다.
+
+이 테스트를 통과하더라도 실제 USB/CSI 카메라에서
+지연 누적과 장시간 안정성을 별도로 검증해야 한다.
+또한 초기 1회 시도만으로 충분하다고 단정하지 말고,
+반복 시 frame 수와 반복 검출 일관성을 확인해야 한다.
