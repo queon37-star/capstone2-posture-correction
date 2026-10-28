@@ -5,6 +5,7 @@ The trace captures the already running counter's state and does not change it.
 """
 import argparse
 import csv
+import json
 import math
 from collections import Counter
 from pathlib import Path
@@ -39,6 +40,46 @@ def contiguous_runs(rows, predicate):
     if first is not None:
         spans.append((first, last))
     return spans
+
+
+def describe_candidates(rows):
+    """Check whether multi-detections represent stable tracked people or duplicates."""
+    if not rows or 'person_candidates_json' not in rows[0]:
+        print('Person candidate details unavailable; update the runner and rerun.')
+        return
+
+    print('\\n=== Person candidate tracker details ===')
+    windows = [(210, 240), (241, 267), (268, 307), (308, 330)]
+    for lo, hi in windows:
+        counts = Counter()
+        unknown = 0
+        areas = {}
+        centers = {}
+        for row in rows:
+            frame = int(row['frame_id'])
+            if not lo <= frame <= hi:
+                continue
+            for det in json.loads(row['person_candidates_json'] or '[]'):
+                key = str(det.get('track_id')) if det.get('track_id') is not None else '(no ID)'
+                counts[key] += 1
+                bbox = det.get('bbox', [0, 0, 0, 0])
+                centers.setdefault(key, []).append(bbox[0] + bbox[2] / 2)
+                areas.setdefault(key, []).append(bbox[2] * bbox[3])
+                unknown += not det.get('has_landmarks', False)
+        print(f'  frames={lo}-{hi}: ' +
+              (', '.join(
+                  f'id={key}: {count} detections, '
+                  f'mean_center_x={sum(centers[key])/len(centers[key]):.2f}, '
+                  f'mean_bbox_area={sum(areas[key])/len(areas[key]):.3f}'
+                  for key, count in counts.most_common(6)
+              ) or 'no people') +
+              f'; detections_without_landmarks={unknown}')
+
+    for frame in (240, 250, 260, 268, 280, 300, 308, 317, 325):
+        row = next((r for r in rows if int(r['frame_id']) == frame), None)
+        if row is not None:
+            cand = json.loads(row['person_candidates_json'] or '[]')
+            print(f'  frame={frame} candidates={json.dumps(cand, ensure_ascii=False)}')
 
 
 def describe(rows, start, end):
@@ -104,6 +145,7 @@ def main():
     print(f'Trace frames: {frame_ids[0]}..{frame_ids[-1]} ({len(rows)} rows)')
     describe(rows, 210, 330)
     describe(rows, 340, 460)
+    describe_candidates(rows)
     describe(rows, frame_ids[0], frame_ids[-1])
     print('\nInterpretation: missing runs >=15 frames can clear the counter '
           'calibration at 30 FPS. A BOTTOM state may be triggered by '
