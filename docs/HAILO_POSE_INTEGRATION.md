@@ -68,3 +68,43 @@ python3 scripts/run_squat_hailo_pose.py
 - scripts/hailo_squat_bridge.py: 관절 전달 및 JSONL 저장
 - scripts/run_squat_hailo_pose.py: 공식 GStreamer Pose 구조 기반 실행 스크립트
 - tests/test_hailo_squat_bridge.py: 외부 장비 없는 통합 브리지 테스트
+
+
+## R2130-12 첫 하드웨어 검증: 카운팅 전용 모드
+
+확인된 장비: HailoRT 4.20.0, Tappas 3.31.0, `hailo_apps_infra`,
+`~/hailo-rpi5-examples/venv_hailo_rpi5_examples`.
+현재 보드에는 NumPy 1.24.2가 있지만 joblib/sklearn/pandas가 없으므로
+**패키지 설치 없이 먼저 스쿼트 반복 검출만** 검증한다.
+2026-10-28 이후 통합 스크립트는 구형 `hailo_apps_infra`를 우선 import한다.
+학습된 joblib 모델은 repository의 `models/`에 이미 존재한다.
+
+~~~bash
+cd ~/hailo-rpi5-examples
+source setup_env.sh
+cd ~/capstone2/pose_training
+git pull --ff-only
+python -m pytest -q tests/    # pytest가 있을 때만; 없어도 장비 추론은 별도로 가능
+python -m py_compile scripts/run_squat_hailo_pose.py scripts/squat_stream_pipeline.py
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_OUTPUT="results/hailo/count_only_reps.jsonl"
+export SQUAT_FPS=30  # 실제 callback_fps 확인 후 수정
+
+python scripts/run_squat_hailo_pose.py \
+    --input /ABSOLUTE/PATH/TO/single_person_squats.mp4 \
+    --hef-path "$HOME/hailo-rpi5-examples/resources/yolov8m_pose.hef"
+~~~
+
+- 입력 영상에는 한 사람의 전신만 나타나야 한다. 다중 인원이 나오는
+  `resources/example.mp4`는 Pose 콜백 배선 테스트에는 사용할 수 있지만
+  카운터 반복 검증용으로는 부적절하다.
+- `posture=unknown`과 `classification_status=disabled_count_only`는
+  카운팅 전용 모드에서 **예상되는 정상 출력**이다. 모델 품질을 뜻하지 않는다.
+- `valid_pose=0/...`이면 카운터가 아니라 Hailo 검출/랜드마크/좌표 문제를
+  먼저 조사한다. frame callback FPS는 최종 화면 응답 지연이 아니다.
+- `Ctrl+C`로 중단한 뒤 `results/hailo/count_only_reps.jsonl`에서
+  count, start/end frame, knee angle, peak hip depth를 확인한다.
+- 나중에 모델 추론 의존성과 scikit-learn 모델 호환성 문제가 해결되면
+  `unset SQUAT_COUNT_ONLY`로 Good/Bad 모드를 실행한다.
