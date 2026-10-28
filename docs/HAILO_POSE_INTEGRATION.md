@@ -297,3 +297,52 @@ wc -l results/hailo/PM_029_paced_batch4.jsonl
 지연 누적과 장시간 안정성을 별도로 검증해야 한다.
 또한 초기 1회 시도만으로 충분하다고 단정하지 말고,
 반복 시 frame 수와 반복 검출 일관성을 확인해야 한다.
+
+
+## 20회 중 2번째 누락(210–330) 원인 분석
+
+현재 PM_029 Ground Truth는 20개 스쿼트 구간이며, Batch 4 Headless
+30 FPS 모의 테스트에서 19개 검출했다. 2번(210–330) 구간만 누락됐다.
+원인은 **아직 검증되지 않았다.**
+
+기존 코드에서 확인한 실패 가능 조건:
+- `hailo_pose_adapter.single_person_coco17()`은 사람 검출이 정확히
+  1명일 때만 pose를 반환한다. 0명이나 2명 이상이면 missing pose.
+- `SquatCounter.push()`은 유효 골반 좌표가 15프레임 연속 없으면
+  (30 FPS 설정) 진행 중인 반복, 내부 필터와 캘리브레이션을 초기화한다.
+- 반복 인식을 위해 `READY → DESCENDING → BOTTOM → ASCENDING → READY`
+  상태 전이가 필요하다. 현재 설정은 bottom depth 0.20, knee 120도다.
+
+이를 확인하려고 **카운팅 조건을 전혀 바꾸지 않는** 진단 CSV를
+추가했다. 상태 전이, 검출 사람 수, 유효 pose, 누락 연속 프레임,
+스무딩 무릎 각도, 상대 골반 깊이 등을 기록한다.
+
+~~~bash
+cd ~/capstone2/pose_training
+git pull --ff-only
+python -m py_compile scripts/run_squat_hailo_pose.py scripts/analyze_squat_trace.py
+
+export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"
+export SQUAT_COUNT_ONLY=1
+export SQUAT_SINGLE_PASS=1
+export SQUAT_HEADLESS=1
+export SQUAT_BATCH_SIZE=4
+export SQUAT_PACE_FILE=1
+export SQUAT_FPS=30
+export SQUAT_OUTPUT="results/hailo/PM_029_diagnostic_reps.jsonl"
+export SQUAT_TRACE_OUTPUT="results/hailo/PM_029_trace_170_470.csv"
+export SQUAT_TRACE_RANGE="170:470"
+
+python scripts/run_squat_hailo_pose.py \
+  --input "$PWD/PM_029-Camera17-30fps.mp4" \
+  --hef-path "$HAILO_EXAMPLES_ROOT/resources/yolov8m_pose.hef" \
+  --disable-sync
+
+python scripts/analyze_squat_trace.py results/hailo/PM_029_trace_170_470.csv
+~~~
+
+분석 스크립트는 210–330(누락), 340–460(정상 검출),
+전체 추적 구간의 유효 pose, 연속 누락 길이,
+상태 전이 및 보정 초기화 지점을 요약한다.
+진단 결과가 기존 19회 검출과 다르면 CSV 기록의 영향이나
+런타임 비결정성도 함께 점검한다.
