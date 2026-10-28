@@ -7,7 +7,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 
-from hailo_pose_adapter import hailo_to_coco17, single_person_coco17
+from hailo_pose_adapter import (
+    TrackedPersonSelector, hailo_to_coco17, single_person_coco17,
+)
 
 LANDMARKS = object()
 
@@ -131,3 +133,78 @@ def test_coco_knee_hip_shoulder_indices_are_preserved():
     assert kp[15, 1] == pytest.approx(620)  # left ankle
     assert kp[16, 1] == pytest.approx(620)  # right ankle
     assert np.isnan(kp[0, :2]).all()
+
+
+IDENTITIES = object()
+
+
+class FakeTrackID:
+    def __init__(self, track_id):
+        self.track_id = track_id
+
+    def get_id(self):
+        return self.track_id
+
+
+class TrackedDetection(Detection):
+    def __init__(self, track_id, bbox, points=None):
+        super().__init__(points or [Point()] * 17, bbox=bbox)
+        self.track_id = track_id
+
+    def get_objects_typed(self, kind):
+        if kind is IDENTITIES:
+            return [FakeTrackID(self.track_id)]
+        return super().get_objects_typed(kind)
+
+
+def test_track_id_retained_even_when_second_person_has_pose():
+    primary_bbox = BBox(xmin=.30, ymin=.2, width=.19, height=.75)
+    side_bbox = BBox(xmin=.0, ymin=.03, width=.07, height=.92)
+    primary = TrackedDetection(2, primary_bbox)
+    side = TrackedDetection(4, side_bbox)
+    selector = TrackedPersonSelector()
+    first = selector.select([primary], 1280, 720, landmarks_type=LANDMARKS,
+                            identity_type=IDENTITIES)
+    assert first.shape == (17, 3)
+    during_multi = selector.select([side, primary], 1280, 720,
+                                   landmarks_type=LANDMARKS,
+                                   identity_type=IDENTITIES)
+    np.testing.assert_allclose(during_multi, first)
+    assert selector.active_track_id == 2
+    assert selector.multi_selected == 1
+    assert selector.reacquired_ids == 0
+
+
+def test_selector_does_not_guess_or_jump_to_side_person():
+    primary = TrackedDetection(2, BBox(xmin=.30, ymin=.2, width=.19, height=.75))
+    side = TrackedDetection(4, BBox(xmin=.0, ymin=.03, width=.07, height=.92))
+    selector = TrackedPersonSelector()
+    assert selector.select([side, primary], 1280, 720,
+                           landmarks_type=LANDMARKS,
+                           identity_type=IDENTITIES) is None
+    assert selector.active_track_id is None
+    assert selector.select([primary], 1280, 720,
+                           landmarks_type=LANDMARKS,
+                           identity_type=IDENTITIES) is not None
+    assert selector.select([side], 1280, 720,
+                           landmarks_type=LANDMARKS,
+                           identity_type=IDENTITIES) is None
+    assert selector.select([side, TrackedDetection(
+        7, BBox(xmin=.31, ymin=.21, width=.19, height=.73)
+    )], 1280, 720, landmarks_type=LANDMARKS,
+        identity_type=IDENTITIES) is None
+    assert selector.active_track_id == 2
+
+
+def test_single_person_near_bbox_can_reacquire_new_tracker_id():
+    selector = TrackedPersonSelector()
+    primary = TrackedDetection(2, BBox(xmin=.30, ymin=.2, width=.19, height=.75))
+    replacement = TrackedDetection(7, BBox(xmin=.31, ymin=.21, width=.19, height=.73))
+    assert selector.select([primary], 1280, 720,
+                           landmarks_type=LANDMARKS,
+                           identity_type=IDENTITIES) is not None
+    assert selector.select([replacement], 1280, 720,
+                           landmarks_type=LANDMARKS,
+                           identity_type=IDENTITIES) is not None
+    assert selector.active_track_id == 7
+    assert selector.reacquired_ids == 1
