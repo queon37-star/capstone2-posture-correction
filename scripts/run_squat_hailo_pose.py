@@ -11,6 +11,7 @@ Usage from repository root (the trusted model file must already be copied):
     # For classification later: unset SQUAT_COUNT_ONLY and set SQUAT_MODEL_PATH.
     export SQUAT_OUTPUT="results/hailo/live_reps.jsonl"
     export SQUAT_FPS="30"
+    export SQUAT_SINGLE_PASS=1  # stop automatically at video EOS
     python scripts/run_squat_hailo_pose.py
 
 This script writes events to JSONL only. It does NOT send HTTP POST to FastAPI.
@@ -45,6 +46,19 @@ except ImportError:
 
 from hailo_squat_bridge import HailoSquatBridge
 from squat_stream_pipeline import SquatStreamPipeline
+
+
+class SquatPoseApp(GStreamerPoseEstimationApp):
+    """Optional single-pass file playback without changing Hailo's installed files."""
+
+    def on_eos(self):
+        # The installed GStreamerApp rewinds file sources by default.
+        # For reproducible dataset evaluation, finish exactly one pass.
+        if os.getenv('SQUAT_SINGLE_PASS', '0') == '1' and self.source_type == 'file':
+            print('EOS: file finished; stopping without rewind.', flush=True)
+            self.shutdown()
+        else:
+            super().on_eos()
 
 
 class SquatCallbackData(app_callback_class):
@@ -132,13 +146,16 @@ def main():
         print('Count-only validation: posture=unknown is EXPECTED; no joblib/sklearn loaded.')
     else:
         print(f'Classifier={model_path}; count and Good/Bad events saved to JSONL.')
-    print('Single-person input only; no server POST.')
+    print(
+        'Single-person input only; no server POST; '
+        f'single_pass={os.getenv("SQUAT_SINGLE_PASS", "0") == "1"}.'
+    )
 
     with output_path.open('w', encoding='utf-8') as writer:
         bridge = HailoSquatBridge(pipeline, writer)
         user_data = SquatCallbackData(bridge)
         try:
-            app = GStreamerPoseEstimationApp(app_callback, user_data)
+            app = SquatPoseApp(app_callback, user_data)
             app.run()
         finally:
             bridge.finish()
