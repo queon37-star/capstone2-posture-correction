@@ -216,6 +216,7 @@ def app_callback(pad, info, user_data):
         frame_id=frame_id, detections=detections,
         width=width, height=height,
         landmarks_type=hailo.HAILO_LANDMARKS,
+        identity_type=hailo.HAILO_UNIQUE_ID,
     )
 
     if trace_active:
@@ -262,6 +263,8 @@ def app_callback(pad, info, user_data):
             f'{bridge.single_person_frames}/{bridge.multi_person_frames} '
             f'single_missing_pose={bridge.single_person_without_pose_frames} '
             f'missing_caps={bridge.missing_caps_frames} '
+            f'track_id={bridge.selector.active_track_id if bridge.selector else "strict"} '
+            f'multi_selected={bridge.selector.multi_selected if bridge.selector else 0} '
             f'callback_fps={bridge.processed_frames/elapsed:.1f}',
             flush=True,
         )
@@ -271,6 +274,9 @@ def app_callback(pad, info, user_data):
 def main():
     project_root = Path(__file__).resolve().parents[1]
     count_only = os.getenv('SQUAT_COUNT_ONLY', '0') == '1'
+    person_selection = os.getenv('SQUAT_PERSON_SELECTION', 'strict').strip().lower()
+    if person_selection not in ('strict', 'tracked'):
+        raise ValueError('SQUAT_PERSON_SELECTION must be strict or tracked')
     model_path = Path(os.getenv(
         'SQUAT_MODEL_PATH', 'models/squat_plus_asymmetry180_crop10_all9.joblib'
     )).expanduser()
@@ -323,7 +329,11 @@ def main():
         if trace_range[0] < 0 or trace_range[1] < trace_range[0]:
             raise ValueError('Invalid SQUAT_TRACE_RANGE')
         trace_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'Mode={"COUNT_ONLY" if count_only else "CLASSIFIER"} | assumed_fps={fps:g} | output={output_path}')
+    print(
+        f'Mode={"COUNT_ONLY" if count_only else "CLASSIFIER"} '
+        f'| person_selection={person_selection} | assumed_fps={fps:g} '
+        f'| output={output_path}'
+    )
     if count_only:
         print('Count-only validation: posture=unknown is EXPECTED; no joblib/sklearn loaded.')
     else:
@@ -344,7 +354,9 @@ def main():
             trace_csv = csv.writer(trace_file)
             trace_csv.writerow(TRACE_FIELDS)
             print(f'TRACE: frames={trace_range[0]}..{trace_range[1]} file={trace_path}', flush=True)
-        bridge = HailoSquatBridge(pipeline, writer)
+        bridge = HailoSquatBridge(
+            pipeline, writer, person_selection=person_selection
+        )
         user_data = SquatCallbackData(bridge, trace_csv, trace_range)
         try:
             app = SquatPoseApp(app_callback, user_data)
@@ -374,6 +386,8 @@ def main():
                 f'{bridge.single_person_frames}/{bridge.multi_person_frames}, '
                 f'single_missing_pose={bridge.single_person_without_pose_frames}, '
                 f'missing_caps={bridge.missing_caps_frames}, '
+                f'multi_selected={bridge.selector.multi_selected if bridge.selector else 0}, '
+                f'track_id_reacquisitions={bridge.selector.reacquired_ids if bridge.selector else 0}, '
                 f'wall={elapsed:.1f}s, callback_fps={bridge.processed_frames/elapsed:.1f}, '
                 f'output={output_path}',
                 flush=True,
