@@ -3,11 +3,12 @@
 Run on the R2130-12 / supported Hailo runtime, not on a normal GPU PC.
 Derived from hailo-ai/hailo-rpi5-examples/basic_pipelines/pose_estimation.py:
 same GStreamerPoseEstimationApp, pad-probe callback, HAILO_DETECTION, caps.
-Requires the official hailo_apps package/import path and pyhailo bindings.
+Supports the installed R2130-12 hailo_apps_infra API and newer hailo_apps imports.
 
 Usage from repository root (the trusted model file must already be copied):
     export HAILO_EXAMPLES_ROOT="$HOME/hailo-rpi5-examples"  # adjust
-    export SQUAT_MODEL_PATH="models/squat_plus_asymmetry180_crop10_all9.joblib"
+    export SQUAT_COUNT_ONLY=1  # No joblib or sklearn needed for counter smoke test
+    # For classification later: unset SQUAT_COUNT_ONLY and set SQUAT_MODEL_PATH.
     export SQUAT_OUTPUT="results/hailo/live_reps.jsonl"
     export SQUAT_FPS="30"
     python scripts/run_squat_hailo_pose.py
@@ -30,13 +31,17 @@ gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 
 import hailo
-import joblib
 
-from hailo_apps.hailo_app_python.core.common.buffer_utils import get_caps_from_pad
-from hailo_apps.hailo_app_python.core.gstreamer.gstreamer_app import app_callback_class
-from hailo_apps.hailo_app_python.apps.pose_estimation.pose_estimation_pipeline import (
-    GStreamerPoseEstimationApp,
-)
+# R2130-12 HailoRT 4.20.0 examples use hailo_apps_infra.
+try:
+    from hailo_apps_infra.hailo_rpi_common import get_caps_from_pad, app_callback_class
+    from hailo_apps_infra.pose_estimation_pipeline import GStreamerPoseEstimationApp
+except ImportError:
+    from hailo_apps.hailo_app_python.core.common.buffer_utils import get_caps_from_pad
+    from hailo_apps.hailo_app_python.core.gstreamer.gstreamer_app import app_callback_class
+    from hailo_apps.hailo_app_python.apps.pose_estimation.pose_estimation_pipeline import (
+        GStreamerPoseEstimationApp,
+    )
 
 from hailo_squat_bridge import HailoSquatBridge
 from squat_stream_pipeline import SquatStreamPipeline
@@ -83,6 +88,7 @@ def app_callback(pad, info, user_data):
 
 def main():
     project_root = Path(__file__).resolve().parents[1]
+    count_only = os.getenv('SQUAT_COUNT_ONLY', '0') == '1'
     model_path = Path(os.getenv(
         'SQUAT_MODEL_PATH', 'models/squat_plus_asymmetry180_crop10_all9.joblib'
     )).expanduser()
@@ -94,16 +100,19 @@ def main():
     fps = float(os.getenv('SQUAT_FPS', '30'))
     if not 0 < fps <= 240:
         raise ValueError('SQUAT_FPS must be in (0, 240]')
-    if not model_path.is_file():
-        raise FileNotFoundError(f'Missing classifier artifact: {model_path}')
-
-    # Same semantics as scripts/run_squat_latest.sh. Load ONLY our trusted joblib file.
-    artifact = joblib.load(model_path)
-    if artifact.get('feature_variant') != 'PlusAsymmetry180':
-        raise ValueError('Expected PlusAsymmetry180 classifier artifact')
+    artifact = None
+    if not count_only:
+        if not model_path.is_file():
+            raise FileNotFoundError(f'Missing classifier artifact: {model_path}')
+        # Full classifier mode only: require compatible joblib/sklearn.
+        import joblib
+        artifact = joblib.load(model_path)
+        if artifact.get('feature_variant') != 'PlusAsymmetry180':
+            raise ValueError('Expected PlusAsymmetry180 classifier artifact')
     pipeline = SquatStreamPipeline(
         artifact=artifact, fps=fps, bottom_depth=0.20,
         bottom_knee=120.0, pre_frames=16, post_frames=22,
+        count_only=count_only,
     )
 
     # The original Hailo sample sets HAILO_ENV_FILE to its examples root/.env.
@@ -114,8 +123,12 @@ def main():
             os.environ['HAILO_ENV_FILE'] = str(env_file)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'Classifier={model_path} | assumed_fps={fps:g} | output={output_path}')
-    print('Single-person only; count and Good/Bad events saved to JSONL, not sent to server.')
+    print(f'Mode={"COUNT_ONLY" if count_only else "CLASSIFIER"} | assumed_fps={fps:g} | output={output_path}')
+    if count_only:
+        print('Count-only validation: posture=unknown is EXPECTED; no joblib/sklearn loaded.')
+    else:
+        print(f'Classifier={model_path}; count and Good/Bad events saved to JSONL.')
+    print('Single-person input only; no server POST.')
 
     with output_path.open('w', encoding='utf-8') as writer:
         bridge = HailoSquatBridge(pipeline, writer)
