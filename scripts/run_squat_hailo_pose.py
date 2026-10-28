@@ -19,9 +19,12 @@ Usage from repository root (the trusted model file must already be copied):
 This script writes events to JSONL only. It does NOT send HTTP POST to FastAPI.
 """
 
+import csv
+import math
 import os
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
 
 # Allow use of Hailo's checked-out examples repo without copying this script.
@@ -48,6 +51,21 @@ except ImportError:
 
 from hailo_squat_bridge import HailoSquatBridge
 from squat_stream_pipeline import SquatStreamPipeline
+from stream_squat_core import median_finite
+
+
+TRACE_FIELDS = (
+    'frame_id', 'person_count', 'valid_pose', 'state_before', 'state_after',
+    'counter_before', 'counter_after', 'missing_before', 'missing_after',
+    'standing_hip_before', 'standing_hip_after', 'scale_after',
+    'hip_y', 'knee_angle', 'torso_length',
+    'smoothed_hip_y', 'smoothed_knee_angle', 'relative_hip_depth',
+    'start_votes', 'bottom_votes', 'finish_votes', 'peak_depth',
+)
+
+
+def _diagnostic_float(value):
+    return f'{value:.4f}' if math.isfinite(value) else ''
 
 
 class SquatPoseApp(GStreamerPoseEstimationApp):
@@ -123,13 +141,15 @@ class SquatPoseApp(GStreamerPoseEstimationApp):
 
 
 class SquatCallbackData(app_callback_class):
-    def __init__(self, bridge):
+    def __init__(self, bridge, trace_csv=None, trace_range=None):
         super().__init__()
         self.bridge = bridge
         self.started_at = time.perf_counter()
         self.first_callback_at = None
         self.first_frame_pts = None
         self.pace_drift_ms = []
+        self.trace_csv = trace_csv
+        self.trace_range = trace_range
 
 
 def app_callback(pad, info, user_data):
@@ -156,11 +176,53 @@ def app_callback(pad, info, user_data):
     _format, width, height = get_caps_from_pad(pad)
     roi = hailo.get_roi_from_buffer(buffer)
     detections = roi.get_objects_typed(hailo.HAILO_DETECTION)
+    trace_active = (user_data.trace_csv is not None
+                    and user_data.trace_range[0] <= frame_id <= user_data.trace_range[1])
+    if trace_active:
+        counter = user_data.bridge.pipeline.counter
+        state_before = counter.state
+        count_before = counter.count
+        missing_before = counter.missing_count
+        standing_hip_before = counter.stand_hip
+        people = sum(det.get_label() == 'person' for det in detections)
+        valid_before = user_data.bridge.valid_person_frames
+
     user_data.bridge.process(
         frame_id=frame_id, detections=detections,
         width=width, height=height,
         landmarks_type=hailo.HAILO_LANDMARKS,
     )
+
+    if trace_active:
+        # Read the *existing* counter's state; do not rerun pose conversion,
+        # count a second time, or change any thresholds.
+        valid_pose = int(user_data.bridge.valid_person_frames > valid_before)
+        observations = list(counter.measurements)
+        hip_y, knee, torso = observations[-1] if observations else (float('nan'),) * 3
+        smooth_hip = median_finite(m[0] for m in observations)
+        smooth_knee = median_finite(m[1] for m in observations)
+        depth = (
+            (smooth_hip - counter.stand_hip) / counter.scale
+            if math.isfinite(smooth_hip)
+            and math.isfinite(counter.stand_hip)
+            and math.isfinite(counter.scale)
+            and counter.scale > 0 else float('nan')
+        )
+        user_data.trace_csv.writerow((
+            frame_id, people, valid_pose, state_before, counter.state,
+            count_before, counter.count, missing_before, counter.missing_count,
+            _diagnostic_float(standing_hip_before),
+            _diagnostic_float(counter.stand_hip),
+            _diagnostic_float(counter.scale),
+            _diagnostic_float(hip_y),
+            _diagnostic_float(knee),
+            _diagnostic_float(torso),
+            _diagnostic_float(smooth_hip),
+            _diagnostic_float(smooth_knee),
+            _diagnostic_float(depth),
+            counter.start_votes, counter.bottom_votes,
+            counter.finish_votes, _diagnostic_float(counter.peak_depth),
+        ))
 
     if (frame_id + 1) % 150 == 0:
         bridge = user_data.bridge
@@ -217,6 +279,24 @@ def main():
             os.environ['HAILO_ENV_FILE'] = str(env_file)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    trace_path_str = os.getenv('SQUAT_TRACE_OUTPUT', '').strip()
+    trace_path = Path(trace_path_str).expanduser() if trace_path_str else None
+    trace_range = None
+    if trace_path is not None:
+        if not trace_path.is_absolute():
+            trace_path = project_root / trace_path
+        if trace_path.resolve() == output_path.resolve():
+            raise ValueError('SQUAT_TRACE_OUTPUT must differ from SQUAT_OUTPUT')
+        bounds = os.getenv('SQUAT_TRACE_RANGE', '170:365').split(':')
+        try:
+            if len(bounds) != 2:
+                raise ValueError
+            trace_range = (int(bounds[0]), int(bounds[1]))
+        except ValueError as exc:
+            raise ValueError('SQUAT_TRACE_RANGE must be START:END') from exc
+        if trace_range[0] < 0 or trace_range[1] < trace_range[0]:
+            raise ValueError('Invalid SQUAT_TRACE_RANGE')
+        trace_path.parent.mkdir(parents=True, exist_ok=True)
     print(f'Mode={"COUNT_ONLY" if count_only else "CLASSIFIER"} | assumed_fps={fps:g} | output={output_path}')
     if count_only:
         print('Count-only validation: posture=unknown is EXPECTED; no joblib/sklearn loaded.')
@@ -228,9 +308,18 @@ def main():
         f'headless={os.getenv("SQUAT_HEADLESS", "0") == "1"}.'
     )
 
-    with output_path.open('w', encoding='utf-8') as writer:
+    with ExitStack() as stack:
+        writer = stack.enter_context(output_path.open('w', encoding='utf-8'))
+        trace_csv = None
+        if trace_path is not None:
+            trace_file = stack.enter_context(
+                trace_path.open('w', encoding='utf-8', newline='')
+            )
+            trace_csv = csv.writer(trace_file)
+            trace_csv.writerow(TRACE_FIELDS)
+            print(f'TRACE: frames={trace_range[0]}..{trace_range[1]} file={trace_path}', flush=True)
         bridge = HailoSquatBridge(pipeline, writer)
-        user_data = SquatCallbackData(bridge)
+        user_data = SquatCallbackData(bridge, trace_csv, trace_range)
         try:
             app = SquatPoseApp(app_callback, user_data)
             app.run()
