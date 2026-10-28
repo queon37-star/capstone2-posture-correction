@@ -80,6 +80,10 @@ def app_callback(pad, info, user_data):
             f'detected_reps={bridge.pipeline.counter.count} '
             f'published_reps={bridge.pipeline.event_count} '
             f'valid_pose={bridge.valid_person_frames}/{bridge.processed_frames} '
+            f'persons_0_1_multi={bridge.zero_person_frames}/'
+            f'{bridge.single_person_frames}/{bridge.multi_person_frames} '
+            f'single_missing_pose={bridge.single_person_without_pose_frames} '
+            f'missing_caps={bridge.missing_caps_frames} '
             f'callback_fps={bridge.processed_frames/elapsed:.1f}',
             flush=True,
         )
@@ -143,6 +147,10 @@ def main():
                 f'DONE: {bridge.processed_frames} frames, '
                 f'{pipeline.event_count} complete reps, '
                 f'valid_pose={bridge.valid_person_frames}/{bridge.processed_frames or 1}, '
+                f'persons_0_1_multi={bridge.zero_person_frames}/'
+                f'{bridge.single_person_frames}/{bridge.multi_person_frames}, '
+                f'single_missing_pose={bridge.single_person_without_pose_frames}, '
+                f'missing_caps={bridge.missing_caps_frames}, '
                 f'wall={elapsed:.1f}s, callback_fps={bridge.processed_frames/elapsed:.1f}, '
                 f'output={output_path}',
                 flush=True,
