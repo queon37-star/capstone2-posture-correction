@@ -127,3 +127,28 @@ def test_pipeline_matches_original_counter_and_buffer():
     assert event['detected_end_frame'] == rep.detected_end_frame
     assert event['post_context_complete'] == rep.post_context_complete
     assert event['posture'] == 'bad'
+
+
+def test_count_only_mode_emits_clean_unknown_without_classifier():
+    frames = squat_frames() + [pose(400)] * 28
+
+    def unexpected_classifier(seq, artifact):
+        raise AssertionError('classifier must not run in count-only mode')
+
+    pipeline = SquatStreamPipeline(
+        artifact=None, fps=30, bottom_depth=0.20,
+        pre_frames=16, post_frames=22,
+        classifier=unexpected_classifier, count_only=True,
+    )
+    events = []
+    for frame_id, keypoints in enumerate(frames):
+        events.extend(pipeline.push(keypoints, frame_id=frame_id))
+    events.extend(pipeline.flush())
+
+    assert pipeline.counter.count == 1
+    assert len(events) == 1
+    assert events[0]['count'] == 1
+    assert events[0]['posture'] == 'unknown'
+    assert events[0]['classification_status'] == 'disabled_count_only'
+    assert 'classification_error' not in events[0]
+    assert 'probability_correct_uncalibrated' not in events[0]
