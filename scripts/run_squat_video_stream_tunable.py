@@ -1,8 +1,9 @@
-"""Controlled bottom-depth threshold experiment for buffered squat stream.
+"""Video-based squat stream using shared COCO17 analysis pipeline.
 
-Only change from run_squat_video_stream_buffered.py: optional command-line
-bottom_depth / bottom_knee passed to the existing SquatCounter. Defaults
-match original. GT files are NEVER loaded by this script.
+YOLO handles pose extraction and subject selection; SquatStreamPipeline
+handles counting, repetition buffering, classification and JSON events.
+Command-line threshold defaults match the pre-refactor runner.
+Ground-truth files are NEVER loaded by this script.
 """
 import argparse
 import json
@@ -15,9 +16,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from extract_all_squats_tracked import select_target
-from run_squat_video_stream import classify, absent
-from stream_squat_core import SquatCounter
-from squat_rep_buffer import RepBoundaryBuffer
+from squat_stream_pipeline import SquatStreamPipeline, missing_pose
 
 
 def main():
@@ -63,47 +62,25 @@ def main():
         raise RuntimeError(f'Could not open {video_path}')
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     cap.set(cv2.CAP_PROP_POS_FRAMES, args.start_frame)
-    counter = SquatCounter(fps=fps, bottom_depth=args.bottom_depth,
-                           bottom_knee=args.bottom_knee)
+    pipeline = SquatStreamPipeline(
+        artifact=artifact, fps=fps, bottom_depth=args.bottom_depth,
+        bottom_knee=args.bottom_knee, pre_frames=args.pre_frames,
+        post_frames=args.post_frames)
+    counter = pipeline.counter
     print(f'Counter thresholds: bottom_depth={counter.bottom_depth:.3f} torso units, '
           f'bottom_knee={counter.bottom_knee:.1f} deg; other state machine rules unchanged.', flush=True)
-    assembler = RepBoundaryBuffer(fps=fps, pre_frames=args.pre_frames, post_frames=args.post_frames)
     out_path = args.output or Path(f'results/stream_test/{args.video}_buffered_events.jsonl')
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     start_time = time.perf_counter()
     n = pose_found = 0
     previous_box = None
-    event_count = 0
 
-    def publish(completed_rep, writer):
-        nonlocal event_count
-        event_count += 1
-        try:
-            pred, prob = classify(completed_rep.keypoints, artifact)
-            message = {
-                'type': 'rep', 'exercise': 'squat', 'count': event_count,
-                'posture': 'good' if pred == 1 else 'bad',
-                'issues': [], 'score': None,
-                'probability_correct_uncalibrated': round(prob, 4),
-            }
-        except Exception as exc:
-            message = {'type': 'rep', 'exercise': 'squat', 'count': event_count,
-                       'posture': 'unknown', 'issues': [], 'score': None,
-                       'classification_error': str(exc)}
-        message.update({
-            'start_frame': completed_rep.start_frame,
-            'end_frame': completed_rep.end_frame,
-            'detected_start_frame': completed_rep.detected_start_frame,
-            'detected_end_frame': completed_rep.detected_end_frame,
-            'classification_frame_count': len(completed_rep.keypoints),
-            'post_context_complete': completed_rep.post_context_complete,
-            'peak_hip_depth_torso_units': round(completed_rep.peak_depth, 3),
-            'min_projected_knee_angle': round(completed_rep.min_knee_angle, 1),
-        })
-        writer.write(json.dumps(message, ensure_ascii=False) + '\n')
-        writer.flush()
-        print('REP', json.dumps(message, ensure_ascii=False), flush=True)
+    def write_events(events, writer):
+        for message in events:
+            writer.write(json.dumps(message, ensure_ascii=False) + '\n')
+            writer.flush()
+            print('REP', json.dumps(message, ensure_ascii=False), flush=True)
 
     with out_path.open('w', encoding='utf-8') as output:
         while args.max_frames <= 0 or n < args.max_frames:
@@ -113,7 +90,7 @@ def main():
             fid = args.start_frame + n
             result = pose_model.predict(frame, device=args.device,
                                         imgsz=640, conf=.25, verbose=False)[0]
-            kp = absent()
+            kp = missing_pose()
             if result.boxes is not None and len(result.boxes) > 0:
                 boxes = result.boxes.xyxy.cpu().numpy()
                 scores = result.boxes.conf.cpu().numpy()
@@ -123,24 +100,21 @@ def main():
                     kp[kp[:, 2] < .3, :2] = np.nan
                     previous_box = boxes[idx].copy()
                     pose_found += 1
-            rep_event = counter.push(kp, frame_id=fid)
-            for rep in assembler.push(fid, kp, rep_event):
-                publish(rep, output)
+            write_events(pipeline.push(kp, frame_id=fid), output)
             n += 1
             if n % 150 == 0:
                 elapsed = max(time.perf_counter() - start_time, 1e-6)
                 print(f'frame={fid} state={counter.state} detected_reps={counter.count} '
-                      f'published_reps={event_count} pose_found={pose_found}/{n} '
+                      f'published_reps={pipeline.event_count} pose_found={pose_found}/{n} '
                       f'processing_fps={n/elapsed:.1f}', flush=True)
             if args.paced:
                 remaining = n/fps - (time.perf_counter() - start_time)
                 if remaining > 0:
                     time.sleep(remaining)
-        for rep in assembler.flush():
-            publish(rep, output)
+        write_events(pipeline.flush(), output)
     cap.release()
     elapsed = max(time.perf_counter() - start_time, 1e-6)
-    print(f'DONE: {n} frames, {event_count} complete reps, pose_found={pose_found}/{n or 1}, '
+    print(f'DONE: {n} frames, {pipeline.event_count} complete reps, pose_found={pose_found}/{n or 1}, '
           f'wall={elapsed:.1f}s, actual_processing_fps={n/elapsed:.1f}, output={out_path}')
     print(f'Boundary padding: -{args.pre_frames} frames / +{args.post_frames} frames; '
           'pending post-context introduces bounded classification delay.')
