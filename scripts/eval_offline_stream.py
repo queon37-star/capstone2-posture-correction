@@ -155,7 +155,12 @@ def in_range(start, end, lo, hi):
     return start >= lo and end <= hi
 
 
-def evaluate_video(video, gt_all, reps_all, *, lo, hi, min_iou, condition, first_confirm):
+def evaluate_video(video, gt_all, reps_all, *, lo, hi, min_iou, condition,
+                   first_confirm=None, session_confirms=None):
+    """Evaluate matched repetitions; session_confirms maps session_id to confirmation frame.
+
+    first_confirm is retained for legacy single-session callers only.
+    """
     gt = [g for g in gt_all if in_range(g['start'], g['end'], lo, hi)]
     reps = [r for r in reps_all if in_range(r['detected_start_frame'], r['detected_end_frame'], lo, hi)]
     pairs = match(gt, reps, min_iou)
@@ -169,6 +174,10 @@ def evaluate_video(video, gt_all, reps_all, *, lo, hi, min_iou, condition, first
             win = (r['start_frame'], r['end_frame'])
             inter = max(0, min(win[1], g['end']) - max(win[0], g['start']) + 1)
             posture = r.get('posture', 'unknown')
+            if session_confirms is not None:
+                confirm_frame = session_confirms.get(r.get('session_id'))
+            else:
+                confirm_frame = first_confirm
             row.update({
                 'det_start': r['detected_start_frame'], 'det_end': r['detected_end_frame'],
                 'det_iou': round(value, 4),
@@ -181,7 +190,9 @@ def evaluate_video(video, gt_all, reps_all, *, lo, hi, min_iou, condition, first
                 'prob_correct': r.get('probability_correct_uncalibrated'),
                 'classification_error': r.get('classification_error'),
                 'session_id': r.get('session_id'),
-                'before_first_confirm': (first_confirm is not None and r['detected_end_frame'] < first_confirm)})
+                'session_confirm_frame': confirm_frame,
+                'before_session_confirm': (r['detected_end_frame'] < confirm_frame
+                                           if confirm_frame is not None else None)})
         else:
             row.update({'posture': 'missed', 'classified': False, 'correct': False})
         rows.append(row)
@@ -226,7 +237,10 @@ def summarize(rows, extras):
         'pre_context_lt16': sum(1 for p in pre if p < 16), 'pre_context_negative': sum(1 for p in pre if p < 0),
         'pre_context_median': statistics.median(pre) if pre else None,
         'window_full_gt_coverage': sum(1 for r in m if r['window_gt_coverage'] >= 1.0),
-        'matched_before_first_confirm': sum(1 for r in m if r.get('before_first_confirm')),
+        # The old key is kept for consumers of the 0006 JSON schema.
+        'matched_before_first_confirm': sum(1 for r in m if r.get('before_session_confirm') is True),
+        'matched_before_session_confirm': sum(1 for r in m if r.get('before_session_confirm') is True),
+        'matched_with_known_session_confirm': sum(1 for r in m if r.get('session_confirm_frame') is not None),
     }
 
 
@@ -296,9 +310,15 @@ def run(args, classifier=None, models=None):
             with (cdir / f'{v}_reps.jsonl').open('w', encoding='utf-8') as f:
                 for r in reps:
                     f.write(json.dumps(r, ensure_ascii=False) + '\n')
-            confirms = [e['frame_id'] for e in events if e['type'] == 'session_start' and e['exercise'] == 'squat']
-            rows, extras, excluded = evaluate_video(v, gt, reps, lo=lo, hi=hi, min_iou=args.min_iou,
-                                                    condition=name, first_confirm=confirms[0] if confirms else None)
+            squat_starts = [e for e in events if e['type'] == 'session_start' and e['exercise'] == 'squat']
+            confirms = [e['frame_id'] for e in squat_starts]
+            # Only gated mode can attribute a replayed rep to a squat session.
+            confirm_by_session = ({e['session_id']: e['frame_id'] for e in squat_starts
+                                   if e.get('session_id') is not None}
+                                  if gating == 'on' else None)
+            rows, extras, excluded = evaluate_video(
+                v, gt, reps, lo=lo, hi=hi, min_iou=args.min_iou, condition=name,
+                session_confirms=confirm_by_session)
             all_rows += rows
             all_extras += extras
             per_video[name][v] = {**summarize(rows, extras), 'gt_excluded_by_range': excluded,

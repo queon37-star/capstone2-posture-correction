@@ -190,6 +190,14 @@ def main():
     pd.DataFrame(all_preds).to_csv(args.out_dir / 'gt_segment_lopo_predictions.csv', index=False)
     (args.out_dir / 'gt_segment_lopo_summary.json').write_text(
         json.dumps(summary, ensure_ascii=False, indent=1), encoding='utf-8')
+    enforce_verification(summary, enabled=args.verify_all9)
+
+
+def enforce_verification(summary, *, enabled):
+    # Results are written first, so mismatches remain inspectable on disk.
+    if enabled and not summary.get('verify_all9', {}).get('pass', False):
+        raise SystemExit('FAIL: --verify-all9 did not reproduce the deployed model. '
+                         'Inspect gt_segment_lopo_summary.json before using these results.')
 
 
 if __name__ == '__main__':
