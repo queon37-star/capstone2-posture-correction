@@ -64,13 +64,12 @@ def _status():
         "count_only": os.getenv("SQUAT_COUNT_ONLY", "0") == "1",
         "timebase": os.getenv("SQUAT_AUTO_TIMEBASE", "wall"),
         "classifier_preload": _STATE["classifier_preload"],
-        "kp_dump_frames": None,
+        "kp_dump_frames": None, "gating": None,
     }
     if p is None:
         return result
-    base = p.base
     detector = p.detector
-    counter = getattr(base, "counter", None)
+    counter = p.counter          # gating: cumulative view; otherwise the wrapped counter
     result.update({
         "exercise": p.last_confirmed,
         "raw_exercise": detector.last_raw,
@@ -78,12 +77,22 @@ def _status():
         "frame_id": getattr(p, "dashboard_last_frame", None),
         "counter_state": getattr(counter, "state", None),
         "squat_count": getattr(counter, "count", 0),
-        "published_reps": getattr(base, "event_count", 0),
+        "published_reps": p.event_count,
         "callback_fps": round(getattr(p, "dashboard_frames", 0) /
                                max(time.perf_counter() - p.dashboard_start, .001), 1),
         "valid_pose": getattr(p, "dashboard_valid_pose", None),
         "kp_dump_frames": p.kp_dump.frames if p.kp_dump is not None else None,
+        "gating": p.gating,
     })
+    if p.gating:
+        result.update({
+            "session_id": p.current_session_id,
+            "session_count": p.session_count if p.active_exercise == "squat" else None,
+            "total_count": p.total_count,
+            "session_last_rep": p.session_last_rep,
+            "last_replay": p.last_replay,
+            "max_replay_ms": round(p.max_replay_ms, 2),
+        })
     return result
 
 
@@ -116,7 +125,7 @@ a{color:#93c5fd}
 <footer>기존 카메라·스켈레톤 화면 · <a id="direct" target="_blank" rel="noopener">영상만 별도 열기</a> · 기존 화면이 나타나지 않으면 영상 링크를 확인</footer></section>
 <aside class="panel">
  <section class="card"><h2>자동 운동 종류 · 확정 판정</h2><div class="big" id="exercise">판별 대기</div><div class="sub">즉시 판정: <span id="raw">—</span> · 활성 세션: <span id="session">—</span></div></section>
- <section class="card"><h2>스쿼트 카운팅</h2><div class="big" id="reps">0</div><div class="row"><span class="muted">완료 이벤트</span><b id="published">0</b></div><div class="row"><span class="muted">카운터 상태</span><b id="state">—</b></div></section>
+ <section class="card"><h2>스쿼트 카운팅</h2><div class="big" id="reps">0</div><div class="row"><span class="muted">완료 이벤트(누적)</span><b id="published">0</b></div><div class="row"><span class="muted">현재 세션 반복</span><b id="sessreps">—</b></div><div class="row"><span class="muted">카운터 상태</span><b id="state">—</b></div></section>
  <section class="card"><h2>최근 완료 스쿼트 · Good/Bad</h2><div class="value" id="posture">대기 중</div><div class="sub" id="score">완료된 반복이 기록되면 결과 표시</div></section>
  <section class="card"><h2>처리 상태</h2><div class="row"><span class="muted">Callback (참고)</span><b id="fps">—</b></div><div class="row"><span class="muted">Frame</span><b id="frame">—</b></div><div class="row"><span class="muted">Pose 사용 가능</span><b id="pose">—</b></div><div class="row"><span class="muted">자동 판별 연결</span><b id="hook">—</b></div><div class="sub">Callback FPS는 노트북 영상 FPS나 전체 지연 시간이 아님</div></section>
 </aside></main>
@@ -132,10 +141,11 @@ async function update(){try{
  $('exercise').textContent=label(s.exercise);$('raw').textContent=label(s.raw_exercise);
  $('session').textContent=s.active_session?label(s.active_session):'없음';
  $('reps').textContent=s.squat_count??0;$('published').textContent=s.published_reps??0;
+ $('sessreps').textContent=s.gating?(s.session_count==null?'세션 없음':s.session_count+' (세션 #'+s.session_id+')'):'게이팅 꺼짐';
  $('state').textContent=s.counter_state??'—'; $('fps').textContent=s.callback_fps==null?'—':s.callback_fps+' FPS';
  $('frame').textContent=s.frame_id??'—';$('pose').textContent=s.valid_pose===null?'—':(s.valid_pose?'YES':'NO');
  $('hook').textContent=s.hook_used?'YES':'대기';
- let rep=s.last_rep||{};let posture=rep.posture;
+ let rep=(s.gating?s.session_last_rep:null)||s.last_rep||{};let posture=rep.posture;
  $('posture').textContent=s.count_only?'분류 비활성화':posture==='good'?'GOOD':posture==='bad'?'BAD':posture==='unknown'?'UNKNOWN':posture?String(posture):'대기 중';
  $('posture').className='value '+(posture==='good'?'good':posture==='bad'?'bad':'');
  let parts=[];if(rep.score!==undefined&&rep.score!==null)parts.push('Score: '+rep.score);
@@ -213,8 +223,8 @@ def install_pipeline_hook():
     original_pipeline_class = squat_stream_pipeline.SquatStreamPipeline
 
     class DashboardAutoPipeline(AutoDetectPipeline):
-        def __init__(self, base, fps):
-            super().__init__(base, fps)
+        def __init__(self, base, fps, **kwargs):
+            super().__init__(base, fps, **kwargs)
             self.dashboard_start = time.perf_counter()
             self.dashboard_frames = 0
             self.dashboard_last_frame = None
@@ -222,8 +232,8 @@ def install_pipeline_hook():
             _STATE["pipeline"] = self
             _STATE["hook_used"] = True
 
-        def push(self, kp, *, frame_id):
-            result = super().push(kp, frame_id=frame_id)
+        def push(self, kp, *, frame_id, t=None):
+            result = super().push(kp, frame_id=frame_id, t=t)
             self.dashboard_frames += 1
             self.dashboard_last_frame = frame_id
             # A value measure() can be computed from keypoints; not a new inference.
@@ -235,7 +245,11 @@ def install_pipeline_hook():
         fps = kwargs.get("fps")
         if fps is None:
             fps = os.getenv("SQUAT_FPS", "30")
-        return DashboardAutoPipeline(original, float(fps))
+        # Same constructor arguments (artifact, thresholds, count_only, ...) for
+        # every new squat session when SQUAT_AUTO_GATING=1.
+        return DashboardAutoPipeline(
+            original, float(fps),
+            make_base=lambda: original_pipeline_class(*args, **kwargs))
 
     squat_stream_pipeline.SquatStreamPipeline = _pipeline_factory
     print("AUTO_DASHBOARD pipeline hook installed (existing Hailo inference reused)", flush=True)

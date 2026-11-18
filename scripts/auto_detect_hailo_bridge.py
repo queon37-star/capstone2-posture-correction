@@ -4,6 +4,8 @@ No new model inference, person selector, or squat counter. Events are written
 separately to avoid changes to existing REP JSONL / dashboard consumers.
 
 Optional (default OFF):
+  SQUAT_AUTO_GATING=1   Feed the squat counter only during confirmed squat
+                        sessions (see _push_gated). 0 = snapshot behaviour.
   SQUAT_KP_DUMP=<path>  Append every frame's COCO17 keypoints exactly as they
                         were handed to the squat pipeline, for offline replay
                         (see scripts/replay_kp_dump.py).  Fixed-size binary
@@ -13,6 +15,7 @@ import atexit
 import json
 import os
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -101,11 +104,60 @@ class KeypointDump:
         self._write_meta()
 
 
+class _CounterView:
+    """What dashboards/logs see as pipeline.counter in gating mode.
+
+    count is cumulative over all squat sessions (the UI must not drop to 0 when
+    a new session creates a new SquatCounter); state is the current session's
+    counter state, or INACTIVE outside a squat session. Every other attribute
+    (missing_count, stand_hip, ... used by the trace CSV) is the current one.
+    """
+
+    def __init__(self, owner):
+        self._owner = owner
+
+    @property
+    def count(self):
+        return self._owner.detected_before + self._owner.base.counter.count
+
+    @property
+    def state(self):
+        owner = self._owner
+        return owner.base.counter.state if owner.active_exercise == 'squat' else 'INACTIVE'
+
+    def __getattr__(self, name):
+        return getattr(self._owner.base.counter, name)
+
+
+def _env_float(name, default):
+    return float(os.getenv(name, str(default)))
+
+
 class AutoDetectPipeline:
-    def __init__(self, base, fps, *, events_path=None, kp_dump_path=None):
+    """Wraps one SquatStreamPipeline; adds exercise detection and, optionally,
+    session-based gating of the squat counter.
+
+    Gating (SQUAT_AUTO_GATING=1) rules:
+      * squat counter receives frames only while a squat session is active;
+      * each squat session gets a NEW SquatStreamPipeline (make_base()), so no
+        calibration/state from push-ups, idle or a previous person carries over;
+      * at session start, recent frames (<= SQUAT_AUTO_REPLAY_SEC) are replayed
+        so a rep finished before the detector confirmed 'squat' is kept;
+      * replay never reaches back past: a lying run (push-up/plank posture,
+        >= SQUAT_AUTO_LYING_FRAMES), a pose gap (>= SQUAT_AUTO_GAP_FRAMES),
+        a person-lost reset, or the end of the previous squat session;
+      * the new pipeline sees frame ids relative to the first replayed frame,
+        so RepBoundaryBuffer clamps pre-context at that frame exactly as it does
+        at frame 0 of a stream (no frame duplication or synthetic padding);
+        rep frame fields are mapped back to absolute ids.
+    """
+
+    def __init__(self, base, fps, *, events_path=None, kp_dump_path=None,
+                 make_base=None, gating=None, detector=None, replay_sec=None,
+                 lying_frames=None, gap_frames=None):
         self.base = base
         self.fps = float(fps)
-        self.detector = ExerciseDetector()
+        self.detector = detector if detector is not None else ExerciseDetector()
         self.last_confirmed = None
         self.active_exercise = None
         self.seen_at = None
@@ -132,8 +184,50 @@ class AutoDetectPipeline:
         self.perf_frames = 0
         self.perf_sum = 0.0
         self.perf_max = 0.0
+
+        gating_value = os.getenv('SQUAT_AUTO_GATING', '0') if gating is None else gating
+        if str(gating_value).strip() not in ('0', '1', 'False', 'True'):
+            raise ValueError('SQUAT_AUTO_GATING must be 0 or 1')
+        self.gating = str(gating_value).strip() in ('1', 'True')
+        self.make_base = make_base
+        if self.gating and make_base is None:
+            raise ValueError('gating needs make_base() to create a fresh SquatStreamPipeline')
+        self.replay_sec = float(replay_sec if replay_sec is not None
+                                else _env_float('SQUAT_AUTO_REPLAY_SEC', 6.0))
+        self.lying_frames = int(lying_frames if lying_frames is not None
+                                else _env_float('SQUAT_AUTO_LYING_FRAMES', 5))
+        self.gap_frames = int(gap_frames if gap_frames is not None
+                              else _env_float('SQUAT_AUTO_GAP_FRAMES',
+                                              max(10, int(self.fps * .5))))
+        self.lying_ratio = float(getattr(self.detector, 'lying_ratio', 1.0))
+        self.recent = deque(maxlen=max(1, int(round(self.replay_sec * self.fps))))
+        self.cut_after = -1          # replay may only use frames with id > cut_after
+        self.lying_run = 0
+        self.missing_run = 0
+        self.offset = 0              # absolute frame id of the current base's frame 0
+        self.session_id = 0
+        self.current_session_id = None
+        self.detected_before = 0     # reps detected by finished squat sessions
+        self.total_count = 0         # rep events published in this run
+        self.session_count = 0       # rep events published in the current squat session
+        self.session_last_rep = None
+        self.last_replay = None
+        self.max_replay_ms = 0.0
         print(f'AUTO enabled: timebase={self.timebase}, output={self.path}, '
-              f'kp_dump={self.kp_dump.path if self.kp_dump else "off"}', flush=True)
+              f'kp_dump={self.kp_dump.path if self.kp_dump else "off"}, '
+              f'gating={int(self.gating)}'
+              + (f' replay_sec={self.replay_sec:g} lying_frames={self.lying_frames} '
+                 f'gap_frames={self.gap_frames}' if self.gating else ''), flush=True)
+
+    # Dashboards read pipeline.counter / pipeline.event_count. Without gating
+    # these are exactly the wrapped pipeline's objects, as before.
+    @property
+    def counter(self):
+        return _CounterView(self) if self.gating else self.base.counter
+
+    @property
+    def event_count(self):
+        return self.total_count if self.gating else self.base.event_count
 
     def __getattr__(self, name):
         return getattr(self.base, name)
@@ -151,6 +245,8 @@ class AutoDetectPipeline:
                 else time.perf_counter() - self.t0)
 
     def push(self, kp, *, frame_id, t=None):
+        if self.gating:
+            return self._push_gated(kp, frame_id, t)
         # Run the existing squat pipeline exactly once, with unchanged inputs.
         result = self.base.push(kp, frame_id=frame_id)
         wrapper_start = time.perf_counter()
@@ -185,8 +281,8 @@ class AutoDetectPipeline:
                   f'info={self.detector.last_info} {self._perf_text()}', flush=True)
         return result
 
-    def _account(self, start):
-        elapsed = time.perf_counter() - start
+    def _account(self, start, excluded=0.0):
+        elapsed = time.perf_counter() - start - excluded
         self.perf_frames += 1
         self.perf_sum += elapsed
         self.perf_max = max(self.perf_max, elapsed)
@@ -200,7 +296,155 @@ class AutoDetectPipeline:
         self.perf_frames, self.perf_sum, self.perf_max = 0, 0.0, 0.0
         return text
 
+    # ------------------------------------------------------------------ gating
+    def _push_gated(self, kp, frame_id, t):
+        start = time.perf_counter()
+        t = self._time(frame_id, t)
+        if self.kp_dump is not None:
+            self.kp_dump.write(frame_id, t, kp)
+        kp = np.asarray(kp, dtype=np.float32)
+        m = measure(kp)
+        self._observe(m, frame_id)
+        events = []
+        excluded = 0.0
+
+        if m is not None:
+            self.seen_at = t
+        if self.seen_at is not None and t - self.seen_at >= self.lost_sec:
+            if self.active_exercise is not None:
+                events += self._end_session(frame_id, t, 'person lost')
+            self.detector.reset()
+            self.last_confirmed = None
+            self.seen_at = None
+            self._cut(frame_id)
+
+        label = self.detector.update(kp, t)
+        if label != self.last_confirmed:
+            self._emit('label_change', label, frame_id, t, raw=self.detector.last_raw)
+            if self.active_exercise is not None:
+                events += self._end_session(frame_id, t, 'label change')
+            if label in ('squat', 'pushup'):
+                replay_start = time.perf_counter()
+                events += self._start_session(label, frame_id, t)
+                excluded += time.perf_counter() - replay_start
+            self.last_confirmed = label
+
+        self.recent.append((frame_id, kp.copy()))
+        if self.active_exercise == 'squat':
+            pipeline_start = time.perf_counter()
+            events += self._adopt(self.base.push(kp, frame_id=frame_id - self.offset))
+            excluded += time.perf_counter() - pipeline_start
+        self._account(start, excluded)
+        if (frame_id + 1) % 150 == 0:
+            print(f'AUTO frame={frame_id} raw={self.detector.last_raw} '
+                  f'label={label} session={self.active_exercise}#{self.current_session_id} '
+                  f'reps={self.session_count}/{self.total_count} '
+                  f'info={self.detector.last_info} {self._perf_text()} '
+                  f'replay_ms_max={self.max_replay_ms:.1f}', flush=True)
+        return events
+
+    def _cut(self, frame_id):
+        self.cut_after = max(self.cut_after, int(frame_id))
+
+    def _observe(self, m, frame_id):
+        """Track lying (push-up/plank) runs and pose gaps for the replay cut."""
+        if m is None:
+            self.missing_run += 1          # a dropout inside a plank keeps the lying run
+        else:
+            self.missing_run = 0
+            hands = m['hands_down']
+            lying = (m['width_ratio'] >= self.lying_ratio
+                     or (hands is not None and bool(hands)))
+            self.lying_run = self.lying_run + 1 if lying else 0
+        if self.lying_run >= self.lying_frames or self.missing_run >= self.gap_frames:
+            self._cut(frame_id)
+
+    def _replay_frames(self):
+        frames = [item for item in self.recent if item[0] > self.cut_after]
+        i = len(frames) - 1                # keep only the newest contiguous block
+        while i > 0 and frames[i - 1][0] == frames[i][0] - 1:
+            i -= 1
+        return frames[max(i, 0):]
+
+    def _start_session(self, exercise, frame_id, t):
+        self.session_id += 1
+        self.current_session_id = self.session_id
+        self.active_exercise = exercise
+        self._emit('session_start', exercise, frame_id, t, session_id=self.session_id)
+        if exercise != 'squat':
+            return []
+        self.base = self.make_base()
+        self.session_count = 0
+        self.session_last_rep = None
+        replay = self._replay_frames()
+        self.offset = replay[0][0] if replay else int(frame_id)
+        started = time.perf_counter()
+        out = []
+        for f, k in replay:
+            out += self._adopt(self.base.push(k, frame_id=f - self.offset))
+        ms = 1000 * (time.perf_counter() - started)
+        self.max_replay_ms = max(self.max_replay_ms, ms)
+        self.last_replay = {
+            'session_id': self.session_id, 'frames': len(replay),
+            'first_frame': replay[0][0] if replay else None,
+            'last_frame': replay[-1][0] if replay else None,
+            'cut_after': self.cut_after, 'reps': len(out), 'ms': round(ms, 2)}
+        print('AUTO_REPLAY', json.dumps(self.last_replay), flush=True)
+        return out
+
+    def _end_session(self, frame_id, t, reason):
+        exercise = self.active_exercise
+        out = []
+        extra = {}
+        if exercise == 'squat':
+            # Completed reps still waiting for post-context are published with
+            # post_context_complete=false; an unfinished rep is discarded.
+            out = self._adopt(self.base.flush())
+            self.detected_before += self.base.counter.count
+            extra['session_reps'] = self.session_count
+            self.base = self.make_base()   # untouched placeholder until next session
+            self._cut(frame_id - 1)        # never replay frames this session consumed
+        self._emit('session_end', exercise, frame_id, t, reason=reason,
+                   session_id=self.current_session_id, **extra)
+        self.active_exercise = None
+        self.current_session_id = None
+        return out
+
+    def _adopt(self, events):
+        """Map session-relative rep events to absolute frame ids + session fields."""
+        out = []
+        pre = getattr(getattr(self.base, 'assembler', None), 'pre_frames', 0)
+        for event in events:
+            event = dict(event)
+            for key in ('start_frame', 'end_frame', 'detected_start_frame', 'detected_end_frame'):
+                if key in event:
+                    event[key] += self.offset
+            self.session_count += 1
+            self.total_count += 1
+            event['count'] = self.total_count          # cumulative, as before gating
+            event['session_count'] = self.session_count
+            event['session_id'] = self.current_session_id
+            if 'start_frame' in event and 'detected_start_frame' in event:
+                # False only when the clamp at the session's first frame removed
+                # part of the 16-frame pre-context used by the classifier.
+                event['pre_context_complete'] = not (
+                    event['start_frame'] == self.offset
+                    and event['detected_start_frame'] - self.offset < pre)
+            self.session_last_rep = event
+            out.append(event)
+        return out
+
     def flush(self):
+        if self.gating:
+            result = []
+            if not self.closed:
+                if self.active_exercise is not None:
+                    result = self._end_session(-1, -1, 'stream end')
+                self.out.close()
+                if self.kp_dump is not None:
+                    self.kp_dump.close()
+                self.closed = True
+            return result
         result = self.base.flush()
         if not self.closed:
             if self.active_exercise is not None:

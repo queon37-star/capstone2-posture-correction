@@ -67,7 +67,8 @@ def pushups(n, up=500.0, down=640.0):
 class ScriptedDetector:
     """Stand-in for ExerciseDetector: returns a confirmed label per frame from a
     list of (first_frame, label) changes, so gating tests do not depend on the
-    heuristic thresholds. reset() is recorded but does not alter the script."""
+    heuristic thresholds. Like the real detector, after reset() it reports None
+    until the next scripted change that starts after the reset frame."""
 
     def __init__(self, changes, fps=FPS):
         self.changes = sorted(changes)
@@ -76,15 +77,20 @@ class ScriptedDetector:
         self.last_info = {}
         self.buf = []
         self.resets = 0
+        self.reset_pending = False
+        self.reset_frame = -1
 
     def reset(self):
         self.resets += 1
+        self.reset_pending = True
 
     def update(self, kp, t):
         frame = int(round(t * self.fps))
+        if self.reset_pending:
+            self.reset_frame, self.reset_pending = frame, False
         label = None
         for start, value in self.changes:
-            if frame >= start:
+            if self.reset_frame < start <= frame:
                 label = value
         self.last_raw = label
         return label
