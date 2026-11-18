@@ -14,7 +14,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-_STATE = {"pipeline": None, "started_at": time.perf_counter(), "hook_used": False}
+_STATE = {"pipeline": None, "started_at": time.perf_counter(), "hook_used": False,
+          "classifier_preload": "not_requested"}
 _SERVER = None
 
 
@@ -62,6 +63,8 @@ def _status():
         "last_rep": _read_latest_rep(),
         "count_only": os.getenv("SQUAT_COUNT_ONLY", "0") == "1",
         "timebase": os.getenv("SQUAT_AUTO_TIMEBASE", "wall"),
+        "classifier_preload": _STATE["classifier_preload"],
+        "kp_dump_frames": None,
     }
     if p is None:
         return result
@@ -79,6 +82,7 @@ def _status():
         "callback_fps": round(getattr(p, "dashboard_frames", 0) /
                                max(time.perf_counter() - p.dashboard_start, .001), 1),
         "valid_pose": getattr(p, "dashboard_valid_pose", None),
+        "kp_dump_frames": p.kp_dump.frames if p.kp_dump is not None else None,
     })
     return result
 
@@ -176,7 +180,34 @@ def start_status_server():
     print(f"AUTO_DASHBOARD listening on 127.0.0.1:{port}", flush=True)
 
 
+def preload_classifier():
+    """Import the Good/Bad feature/classifier modules before inference starts.
+
+    SquatStreamPipeline imports squat_classification lazily inside the first
+    completed repetition, i.e. inside the Hailo callback; that pulls in pandas,
+    matplotlib and sklearn (about 1.2 s on a desktop CPU). Importing here moves
+    that one-time cost before the camera starts. Count-only mode skips it so no
+    classifier dependency is added. Outputs are unchanged: an import failure is
+    reported here and still recorded per repetition exactly as before.
+    """
+    if os.getenv("SQUAT_COUNT_ONLY", "0") == "1":
+        _STATE["classifier_preload"] = "skipped_count_only"
+        return
+    start = time.perf_counter()
+    try:
+        import squat_classification  # noqa: F401  (cached in sys.modules)
+    except Exception as exc:  # keep the original per-rep error behaviour
+        _STATE["classifier_preload"] = f"error: {type(exc).__name__}: {exc}"
+        print(f"WARNING: classifier preload failed ({type(exc).__name__}: {exc}); "
+              "Good/Bad events will carry classification_error.", flush=True)
+        return
+    ms = 1000 * (time.perf_counter() - start)
+    _STATE["classifier_preload"] = f"ok ({ms:.0f} ms)"
+    print(f"AUTO_DASHBOARD classifier preloaded in {ms:.0f} ms", flush=True)
+
+
 def install_pipeline_hook():
+    preload_classifier()
     import squat_stream_pipeline
     from auto_detect_hailo_bridge import AutoDetectPipeline
     original_pipeline_class = squat_stream_pipeline.SquatStreamPipeline
