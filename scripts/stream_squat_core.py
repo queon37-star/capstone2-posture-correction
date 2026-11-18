@@ -122,13 +122,16 @@ class SquatCounter:
         else:
             self.missing_count = 0
         if self.missing_count >= max(10, int(self.fps * .5)):
+            # Drop the calibration BEFORE reset_rep(): it chooses READY vs
+            # CALIBRATING from stand_hip. In the old order a gap of exactly this
+            # length left READY with scale=NaN and the counter never recovered.
+            self.stand_hip = float('nan')
+            self.scale = float('nan')
             self.reset_rep()
             self.measurements.clear()
             self.prebuffer.clear()
             self.calibration_y.clear()
             self.calibration_scale.clear()
-            self.stand_hip = float('nan')
-            self.scale = float('nan')
             return None
 
         if self.state == 'CALIBRATING':
