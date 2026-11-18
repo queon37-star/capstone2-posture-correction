@@ -85,7 +85,13 @@ def test_1_first_rep_before_confirmation_is_replayed(tmp_path):
     assert reps[0]['detected_end_frame'] < confirm
     for key in FRAME_KEYS:                     # same boundaries as the ungated stream
         assert [r[key] for r in reps] == [r[key] for r in bare(seq)]
-    assert all(r['pre_context_complete'] for r in reps)
+    expected = [r['detected_start_frame'] - r['start_frame'] for r in bare(seq)]
+    assert [r['pre_context_frames'] for r in reps] == expected
+    assert reps[0]['pre_context_cut'] is None and reps[0]['pre_context_complete']
+    # back-to-back reps: the buffer starts right after the previous published rep
+    for r in reps[1:]:
+        assert r['pre_context_complete'] == (r['pre_context_frames'] >= 16)
+        assert r['pre_context_cut'] in (None, 'previous_rep')
     assert p.last_replay['first_frame'] == 0
 
 
@@ -194,7 +200,9 @@ def test_replay_from_mid_stream_clamps_pre_context_without_error(tmp_path):
     p, reps, _ = run(tmp_path, seq, gating=1, changes=[(0, 'idle'), (130, 'squat')])
     assert len(reps) == 2
     assert reps[0]['pre_context_complete'] is False and reps[0]['start_frame'] == 30
-    assert reps[1]['pre_context_complete'] is True
+    assert reps[0]['pre_context_cut'] == 'session_start'
+    assert reps[0]['pre_context_frames'] == reps[0]['detected_start_frame'] - 30 < 16
+    assert reps[1]['pre_context_cut'] in (None, 'previous_rep')
     # The naive alternative (fresh pipeline fed absolute frame ids) fails:
     naive = make_base()
     with pytest.raises(RuntimeError, match='History does not cover'):
@@ -220,6 +228,17 @@ def test_no_back_to_back_label_change_events(tmp_path):
         _, _, events = run(tmp_path, seq, gating=gating, name=f'g{gating}')
         frames = [e['frame_id'] for e in events if e['type'] == 'label_change']
         assert all(b - a > 1 for a, b in zip(frames, frames[1:]))
+
+
+def test_pre_context_fields_on_spaced_reps(tmp_path):
+    """Reps separated by >= 2 s of standing keep the full 16-frame pre-context."""
+    seq = [stand()] * 30
+    for _ in range(3):
+        seq += squats(1) + [stand()] * 60
+    _, reps, _ = run(tmp_path, seq, gating=1, changes=[(0, 'idle'), (40, 'squat')])
+    assert len(reps) == 3
+    assert all(r['pre_context_complete'] and r['pre_context_cut'] is None
+               and r['pre_context_frames'] == 16 for r in reps)
 
 
 def test_7_replay_cost_is_reported(tmp_path):

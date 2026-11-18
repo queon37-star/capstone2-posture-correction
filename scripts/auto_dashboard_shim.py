@@ -145,11 +145,14 @@ async function update(){try{
  $('state').textContent=s.counter_state??'—'; $('fps').textContent=s.callback_fps==null?'—':s.callback_fps+' FPS';
  $('frame').textContent=s.frame_id??'—';$('pose').textContent=s.valid_pose===null?'—':(s.valid_pose?'YES':'NO');
  $('hook').textContent=s.hook_used?'YES':'대기';
- let rep=(s.gating?s.session_last_rep:null)||s.last_rep||{};let posture=rep.posture;
+ // gating: only this run's in-memory session result (no fallback to an older JSONL line)
+ let rep=s.gating?(s.session_last_rep||{}):(s.last_rep||{});let posture=rep.posture;
  $('posture').textContent=s.count_only?'분류 비활성화':posture==='good'?'GOOD':posture==='bad'?'BAD':posture==='unknown'?'UNKNOWN':posture?String(posture):'대기 중';
  $('posture').className='value '+(posture==='good'?'good':posture==='bad'?'bad':'');
  let parts=[];if(rep.score!==undefined&&rep.score!==null)parts.push('Score: '+rep.score);
  if(rep.frame_id!==undefined)parts.push('Frame: '+rep.frame_id);
+ if(s.gating&&rep.session_id!=null)parts.push((s.active_session==='squat'&&rep.session_id===s.session_id?'현재 세션 #':'이전 세션 #')+rep.session_id);
+ if(rep.pre_context_complete===false)parts.push('pre-context '+rep.pre_context_frames+'f ('+rep.pre_context_cut+')');
  $('score').textContent=parts.length?parts.join(' · '):'완료된 반복이 기록되면 결과 표시';
  }catch(e){$('indicator').textContent='상태 연결 실패: '+e.message;}}
 update();setInterval(update,600);

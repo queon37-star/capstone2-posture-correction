@@ -425,11 +425,16 @@ class AutoDetectPipeline:
             event['session_count'] = self.session_count
             event['session_id'] = self.current_session_id
             if 'start_frame' in event and 'detected_start_frame' in event:
-                # False only when the clamp at the session's first frame removed
-                # part of the 16-frame pre-context used by the classifier.
-                event['pre_context_complete'] = not (
-                    event['start_frame'] == self.offset
-                    and event['detected_start_frame'] - self.offset < pre)
+                # RepBoundaryBuffer keeps up to `pre` frames before the detected
+                # start, but clamps at the session's first frame and right after
+                # the previous published rep (back-to-back reps). Report both.
+                pre_frames = event['detected_start_frame'] - event['start_frame']
+                event['pre_context_frames'] = pre_frames
+                event['pre_context_complete'] = pre_frames >= pre
+                event['pre_context_cut'] = (
+                    None if pre_frames >= pre
+                    else 'session_start' if event['start_frame'] == self.offset
+                    else 'previous_rep')
             self.session_last_rep = event
             out.append(event)
         return out

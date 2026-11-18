@@ -49,6 +49,11 @@ def test_factory_and_status(hooked, gating):
         assert p.base is not p.make_base()     # make_base builds a new object each time
 
 
+def test_dashboard_has_no_stale_rep_fallback_when_gating():
+    """New session must not show an older Good/Bad result from SQUAT_OUTPUT."""
+    assert "s.gating?(s.session_last_rep||{}):(s.last_rep||{})" in shim._HTML
+
+
 def test_preload_in_classifier_mode(monkeypatch):
     monkeypatch.setenv('SQUAT_COUNT_ONLY', '0')
     monkeypatch.setitem(shim._STATE, 'classifier_preload', 'not_requested')
