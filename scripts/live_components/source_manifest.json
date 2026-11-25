@@ -1,0 +1,33 @@
+{
+  "sources": {
+    "train_exercise_baseline.py": "f4108a0cfcaa7454e47e609e80329e995f9478930c754d5fbb7e18ba91f066df",
+    "eval_ai_exercise_stream.py": "9e6dd7c3228aa256492f5f6d86ad5bd5f1b30e36e0c8175c458f9368238f1388",
+    "eval_session_policy.py": "b5f50338751f16dbd2fa435b8b3043cccedec51b9680314401142d5af31d1257",
+    "train_squat_baseline.py": "93732a609d170f9fd1fd28c05033f8a630d47f903493daeae919523f2b9601fb",
+    "train_squat_extended.py": "d89610bd7571ff85cb31946f52dea88fb20e577dc20b9e98a154fe847c827657",
+    "squat_classification.py": "1a822949545c6d5200432288ea5021cf84721c49c1139c9d4713a14f4124ac8b",
+    "eval_pushup_counter_pilot.py": "92993eebb9c6ea4292be423c7d7050345c4828f754ece25653ea8a9f6e6248f5",
+    "train_pushup_posture.py": "6902b4cb4321f3fbc72e1f3e58165fc145bd86306c65027d225cf85166a6e76a",
+    "probe_pushup_feedback.py": "6606fc3174ee7f7fa864bc5dbe9a0a83d37221118a22c9fe759c4cf91ab2db1a",
+    "eval_pushup_gated_stream.py": "0ed5c9a19b0302f0e1c54ed17facb82044e9167457af90d81a09e901f83d1428",
+    "eval_unified_exercise_stream_v2.py": "4eed8915ac70e6f7f76f9060079a5320da3ede08bfab8166cdaf14e415899fb7",
+    "auto_detect_hailo_bridge.py": "3b3b47710780d0d455579725865c35c733396deab71f7b7dc66da3298925cd3c",
+    "exercise_detector.py": "a0d77783da4cd75647bce3f42f75826158c1b4ec9e0faadc072c47fd3d531df2",
+    "squat_stream_pipeline.py": "ab092c4d7928e43bffa27ddd165c9618aee6192a73aa4e689d5cc1e4bfbcd4a5",
+    "squat_rep_buffer.py": "cad187e41be1096bff2e3604b1ee1f9fffc4affe65f2ce13fc28d079aa1395aa",
+    "stream_squat_core.py": "f5de7693937d8655ab2c90a2f6b12d00294f05942f041da4c0559ada97dd99fd",
+    "deploy_lr_numpy.py": "5c895061f43095d0bb7d3e6e3757fa489e628f3a1d0c334b02100ef6449dbe77"
+  },
+  "generated": {
+    "exercise_features.py": "468a25acd40fb79bde2c1e04c5b1c726b11500afc3c743770dcf0706719b5081",
+    "detector.py": "a8b512160b71578ceac2d6c7956ebfadc4afc356fb4bea5e21f0d812d7b158ac",
+    "squat_base.py": "0e299f444df757ce5875c68dda4b7dc8c50b57851c7c898f28b1255468cf6150",
+    "squat_features.py": "b3867610191c12e1ddeff08e82f03f7413924fca456a6e987dac39dfbdedd6d7",
+    "squat_classifier.py": "231b356be3587135cde6c05f5ffcbfb13c684e9ea3dd01561c18a67db29d026b",
+    "pushup_counter.py": "1f57e1181bd81633fb974612f080a53a66ea02ad620ea6fce6c60013db0b8448",
+    "pushup_features.py": "cfe9e8f1665ebe2f904a1aba86967b3ef6ff7dec105c109c704f5b71d4fb96aa",
+    "pushup_branch.py": "cd07c5c857ad7141f2a47eda4c268c693b2e70a9acaff9daf7a4e5a4564a37d7",
+    "unified.py": "247c9e71f1c7ba8296bc636a21c4f670d4af259d84ea7b135a667e1f429a0aba",
+    "__init__.py": "d22a47571c849a0591617f89c46eb3a5f3378c1847a7845fd1efee0cab76b222"
+  }
+}
