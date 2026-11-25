@@ -1,0 +1,17 @@
+{
+  "videos": 6,
+  "manual_total": 90,
+  "diagnostic_total": 88,
+  "causal_total": 87,
+  "exact_count_videos": 3,
+  "mean_absolute_count_error": 0.5,
+  "total_absolute_error": 3,
+  "config": {
+    "depth": 0.18,
+    "recovery": 0.75,
+    "scale_history_sec": 1.5,
+    "median_sec": 0.2
+  },
+  "manual_counts_sha256": "78b1752d563ff140283e3bbe15d0b983f813436036bf88d75aec73560515e2e5",
+  "notes": "Pilot-tuned, no exercise gating. Manual clip counts only, not matched rep recall. Candidate boundaries are proposals, not GT. No correctness labels inferred."
+}

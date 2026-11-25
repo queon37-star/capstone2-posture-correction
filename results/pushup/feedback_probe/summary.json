@@ -1,0 +1,213 @@
+{
+  "thresholds": {
+    "hip_angle_p10_deg": 160.0,
+    "hip_offset_abs_p90_torso": 0.2,
+    "elbow_angle_p10_deg": 110.0,
+    "shoulder_range_torso": 0.3
+  },
+  "rep_count": 344,
+  "clip_count": 123,
+  "metrics": [
+    {
+      "dataset": "Kaggle",
+      "clip_label": 1,
+      "rule": "alignment_flag",
+      "rep_total": 47,
+      "rep_assessable": 47,
+      "rep_flagged": 0,
+      "rep_flag_rate": 0.0,
+      "clips_total": 50,
+      "clips_assessable": 47,
+      "mean_clip_flag_rate": 0.0,
+      "clips_with_any_flag": 0
+    },
+    {
+      "dataset": "Kaggle",
+      "clip_label": 1,
+      "rule": "depth_flag",
+      "rep_total": 47,
+      "rep_assessable": 47,
+      "rep_flagged": 0,
+      "rep_flag_rate": 0.0,
+      "clips_total": 50,
+      "clips_assessable": 47,
+      "mean_clip_flag_rate": 0.0,
+      "clips_with_any_flag": 0
+    },
+    {
+      "dataset": "Kaggle",
+      "clip_label": 1,
+      "rule": "any_flag",
+      "rep_total": 47,
+      "rep_assessable": 47,
+      "rep_flagged": 0,
+      "rep_flag_rate": 0.0,
+      "clips_total": 50,
+      "clips_assessable": 47,
+      "mean_clip_flag_rate": 0.0,
+      "clips_with_any_flag": 0
+    },
+    {
+      "dataset": "Kaggle",
+      "clip_label": 0,
+      "rule": "alignment_flag",
+      "rep_total": 42,
+      "rep_assessable": 42,
+      "rep_flagged": 11,
+      "rep_flag_rate": 0.2619047619,
+      "clips_total": 50,
+      "clips_assessable": 39,
+      "mean_clip_flag_rate": 0.2564102564,
+      "clips_with_any_flag": 10
+    },
+    {
+      "dataset": "Kaggle",
+      "clip_label": 0,
+      "rule": "depth_flag",
+      "rep_total": 42,
+      "rep_assessable": 42,
+      "rep_flagged": 0,
+      "rep_flag_rate": 0.0,
+      "clips_total": 50,
+      "clips_assessable": 39,
+      "mean_clip_flag_rate": 0.0,
+      "clips_with_any_flag": 0
+    },
+    {
+      "dataset": "Kaggle",
+      "clip_label": 0,
+      "rule": "any_flag",
+      "rep_total": 42,
+      "rep_assessable": 42,
+      "rep_flagged": 11,
+      "rep_flag_rate": 0.2619047619,
+      "clips_total": 50,
+      "clips_assessable": 39,
+      "mean_clip_flag_rate": 0.2564102564,
+      "clips_with_any_flag": 10
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 1,
+      "rule": "alignment_flag",
+      "rep_total": 130,
+      "rep_assessable": 130,
+      "rep_flagged": 3,
+      "rep_flag_rate": 0.0230769231,
+      "clips_total": 11,
+      "clips_assessable": 11,
+      "mean_clip_flag_rate": 0.038961039,
+      "clips_with_any_flag": 1
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 1,
+      "rule": "depth_flag",
+      "rep_total": 130,
+      "rep_assessable": 130,
+      "rep_flagged": 1,
+      "rep_flag_rate": 0.0076923077,
+      "clips_total": 11,
+      "clips_assessable": 11,
+      "mean_clip_flag_rate": 0.0053475936,
+      "clips_with_any_flag": 1
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 1,
+      "rule": "any_flag",
+      "rep_total": 130,
+      "rep_assessable": 130,
+      "rep_flagged": 4,
+      "rep_flag_rate": 0.0307692308,
+      "clips_total": 11,
+      "clips_assessable": 11,
+      "mean_clip_flag_rate": 0.0443086325,
+      "clips_with_any_flag": 2
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 0,
+      "rule": "alignment_flag",
+      "rep_total": 125,
+      "rep_assessable": 125,
+      "rep_flagged": 26,
+      "rep_flag_rate": 0.208,
+      "clips_total": 12,
+      "clips_assessable": 12,
+      "mean_clip_flag_rate": 0.2552910053,
+      "clips_with_any_flag": 6
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 0,
+      "rule": "depth_flag",
+      "rep_total": 125,
+      "rep_assessable": 125,
+      "rep_flagged": 16,
+      "rep_flag_rate": 0.128,
+      "clips_total": 12,
+      "clips_assessable": 12,
+      "mean_clip_flag_rate": 0.0740740741,
+      "clips_with_any_flag": 1
+    },
+    {
+      "dataset": "MV7",
+      "clip_label": 0,
+      "rule": "any_flag",
+      "rep_total": 125,
+      "rep_assessable": 125,
+      "rep_flagged": 38,
+      "rep_flag_rate": 0.304,
+      "clips_total": 12,
+      "clips_assessable": 12,
+      "mean_clip_flag_rate": 0.3108465608,
+      "clips_with_any_flag": 6
+    }
+  ],
+  "paired_order": [
+    {
+      "dataset": "Kaggle",
+      "rule": "alignment_flag",
+      "groups": 4,
+      "bad_higher": 1,
+      "ties": 3
+    },
+    {
+      "dataset": "Kaggle",
+      "rule": "any_flag",
+      "groups": 4,
+      "bad_higher": 1,
+      "ties": 3
+    },
+    {
+      "dataset": "Kaggle",
+      "rule": "depth_flag",
+      "groups": 4,
+      "bad_higher": 0,
+      "ties": 4
+    },
+    {
+      "dataset": "MV7",
+      "rule": "alignment_flag",
+      "groups": 9,
+      "bad_higher": 5,
+      "ties": 4
+    },
+    {
+      "dataset": "MV7",
+      "rule": "any_flag",
+      "groups": 9,
+      "bad_higher": 5,
+      "ties": 4
+    },
+    {
+      "dataset": "MV7",
+      "rule": "depth_flag",
+      "groups": 9,
+      "bad_higher": 1,
+      "ties": 8
+    }
+  ],
+  "notes": "Fixed exploratory engineering criteria, not clinical limits. 2D side-view only. Original labels describe clips, not individual errors. Flag rates are descriptive; no flag does not establish correct posture. No training, tuning or validation of error-specific accuracy."
+}

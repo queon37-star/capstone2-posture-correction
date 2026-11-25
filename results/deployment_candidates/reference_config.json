@@ -1,0 +1,37 @@
+{
+  "exercise": {
+    "window_sec": 2,
+    "sampling_fps": 15,
+    "enter_sec": 1.5,
+    "exit_to_other_sec": 2.5,
+    "target_to_target_sec": 1.5
+  },
+  "stream": {
+    "replay_sec": 6,
+    "person_lost_sec": 3,
+    "pose_confidence": 0.3,
+    "gap_policy": "max(10,int(fps*0.5))",
+    "lying_frames": 5,
+    "validated_fixed_fps": [
+      15,
+      30
+    ]
+  },
+  "squat": {
+    "bottom_depth": 0.2,
+    "bottom_knee": 120,
+    "pre_frames": 16,
+    "post_frames": 22,
+    "boundary_policy": "no_overlap",
+    "training_camera": 17
+  },
+  "pushup": {
+    "alignment_warning_enabled": true,
+    "hip_angle_p10_deg": 160,
+    "hip_offset_abs_p90_torso": 0.2,
+    "depth_warning_enabled": false,
+    "good_bad_classifier_enabled": false
+  },
+  "operational_note": "Prototype: allow >=4 seconds without a detected person between exercise types; direct switching remains unvalidated.",
+  "note": "Reference settings only; live adapter must explicitly apply them. Not an executable runtime configuration."
+}

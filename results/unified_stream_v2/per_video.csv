@@ -1,0 +1,51 @@
+stream,kind,gt_frames,squat_active_frames,pushup_active_frames,squat_count,pushup_count,squat_overlap,pushup_overlap,gt_reps,detected_matched,missed,extra_detections,mean_det_iou,classified,classification_failed,failure_rate,accuracy_classified,accuracy_matched_unknown_wrong,accuracy_end_to_end,bad_recall_classified,bad_precision_classified,bad_recall_end_to_end,balanced_accuracy_classified,confusion_classified,pre_context_lt16,pre_context_negative,pre_context_median,window_full_gt_coverage,matched_before_first_confirm,matched_before_session_confirm,matched_with_known_session_confirm,source_exercise,manual_count,absolute_error,alignment_warnings,unassessable
+PM_008,squat,2994,2302,0,23,0,23,0,27.0,23.0,4.0,0.0,0.5712,23.0,0.0,0.0,1.0,1.0,0.8519,1.0,1.0,0.8333,1.0,"{'good_as_good': 18, 'good_as_bad': 0, 'bad_as_good': 0, 'bad_as_bad': 5}",0.0,0.0,16.0,5.0,1.0,1.0,23.0,,,,,
+PM_022,squat,1779,1567,0,22,0,22,0,22.0,22.0,0.0,0.0,0.7277,22.0,0.0,0.0,0.6818,0.6818,0.6818,1.0,0.125,1.0,0.8334,"{'good_as_good': 14, 'good_as_bad': 7, 'bad_as_good': 0, 'bad_as_bad': 1}",13.0,1.0,11.0,11.0,3.0,3.0,22.0,,,,,
+PM_029,squat,2199,1928,0,20,0,20,0,20.0,20.0,0.0,0.0,0.7105,20.0,0.0,0.0,0.95,0.95,0.95,0.9,1.0,0.9,0.95,"{'good_as_good': 10, 'good_as_bad': 0, 'bad_as_good': 1, 'bad_as_bad': 9}",11.0,0.0,14.5,3.0,0.0,0.0,20.0,,,,,
+PM_038,squat,1743,1652,0,20,0,20,0,20.0,20.0,0.0,0.0,0.7045,20.0,0.0,0.0,0.8,0.8,0.8,1.0,0.4286,1.0,0.8823,"{'good_as_good': 13, 'good_as_bad': 4, 'bad_as_good': 0, 'bad_as_bad': 3}",15.0,0.0,11.5,6.0,0.0,0.0,20.0,,,,,
+PM_043,squat,1913,1670,0,20,0,20,0,20.0,20.0,0.0,0.0,0.6112,20.0,0.0,0.0,0.9,0.9,0.9,0.8,1.0,0.8,0.9,"{'good_as_good': 10, 'good_as_bad': 0, 'bad_as_good': 2, 'bad_as_bad': 8}",7.0,0.0,16.0,7.0,0.0,0.0,20.0,,,,,
+PM_105,squat,2021,1703,0,21,0,21,0,21.0,21.0,0.0,0.0,0.6642,21.0,0.0,0.0,0.9524,0.9524,0.9524,0.9091,1.0,0.9091,0.9546,"{'good_as_good': 10, 'good_as_bad': 0, 'bad_as_good': 1, 'bad_as_bad': 10}",12.0,0.0,14.0,4.0,2.0,2.0,21.0,,,,,
+PM_126,squat,2274,2141,0,20,0,20,0,20.0,20.0,0.0,0.0,0.6645,20.0,0.0,0.0,0.85,0.85,0.85,0.7,1.0,0.7,0.85,"{'good_as_good': 10, 'good_as_bad': 0, 'bad_as_good': 3, 'bad_as_bad': 7}",0.0,0.0,16.0,7.0,0.0,0.0,20.0,,,,,
+PM_113,squat,2699,2397,0,22,0,22,0,22.0,22.0,0.0,0.0,0.6089,22.0,0.0,0.0,0.5909,0.5909,0.5909,1.0,0.3571,1.0,0.7353,"{'good_as_good': 8, 'good_as_bad': 9, 'bad_as_good': 0, 'bad_as_bad': 5}",2.0,0.0,16.0,3.0,0.0,0.0,22.0,,,,,
+PM_118,squat,1751,1540,0,23,0,23,0,23.0,23.0,0.0,0.0,0.5931,23.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,"{'good_as_good': 18, 'good_as_bad': 0, 'bad_as_good': 0, 'bad_as_bad': 5}",13.0,0.0,13.0,6.0,2.0,2.0,23.0,,,,,
+Ex3_Camera17_PM_010,other,1844,0,0,0,0,0,0,16.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_011,other,761,0,0,0,0,0,0,8.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_030,other,1648,0,0,0,0,0,0,13.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_031,other,1048,52,0,0,0,0,0,10.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_044,other,987,0,0,0,0,0,0,10.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_107,other,980,0,0,0,0,0,0,10.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_108,other,1976,0,0,0,0,0,0,10.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_119,other,838,0,0,0,0,0,0,11.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex3_Camera17_PM_121,other,1205,287,0,0,0,0,0,11.0,,,,,,,,,,,,,,,,,,,,,,,table_pushup,,,,
+Ex5_Camera17_PM_021,other,1919,0,0,0,0,0,0,20.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_028,other,2509,0,0,0,0,0,0,21.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_037,other,1165,193,0,2,0,2,0,20.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_042,other,2294,380,0,4,0,4,0,25.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_104,other,2159,0,0,0,0,0,0,20.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_112,other,3385,0,0,0,0,0,0,25.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_117a,other,678,0,0,0,0,0,0,8.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_117b,other,1162,0,0,0,0,0,0,14.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+Ex5_Camera17_PM_125,other,2261,241,0,2,0,2,0,20.0,,,,,,,,,,,,,,,,,,,,,,,lunge,,,,
+MV7_subject_001_push_up_bad_side,pushup,378,0,326,0,17,0,17,,,,,,,,,,,,,,,,,,,,,,,,,18.0,1.0,0.0,0.0
+MV7_subject_001_push_up_good_side,pushup,434,0,382,0,12,0,12,,,,,,,,,,,,,,,,,,,,,,,,,12.0,0.0,0.0,2.0
+MV7_subject_002_push_up_bad_side,pushup,476,0,424,0,14,0,14,,,,,,,,,,,,,,,,,,,,,,,,,14.0,0.0,1.0,0.0
+MV7_subject_002_push_up_good_side,pushup,468,0,416,0,12,0,12,,,,,,,,,,,,,,,,,,,,,,,,,12.0,0.0,0.0,0.0
+MV7_subject_003_push_up_bad_side,pushup,458,0,406,0,14,0,14,,,,,,,,,,,,,,,,,,,,,,,,,15.0,1.0,3.0,0.0
+MV7_subject_003_push_up_good_side,pushup,450,0,398,0,18,0,18,,,,,,,,,,,,,,,,,,,,,,,,,19.0,1.0,0.0,0.0
+MV7_subject_004_push_up_good_side,pushup,306,0,254,0,7,0,7,,,,,,,,,,,,,,,,,,,,,,,,,7.0,0.0,3.0,0.0
+MV7_subject_006_push_up_bad_side,pushup,272,0,220,0,8,0,8,,,,,,,,,,,,,,,,,,,,,,,,,8.0,0.0,8.0,0.0
+MV7_subject_006_push_up_good_side,pushup,328,0,276,0,16,0,16,,,,,,,,,,,,,,,,,,,,,,,,,16.0,0.0,0.0,1.0
+MV7_subject_010_push_up_bad_side,pushup,322,0,270,0,8,0,8,,,,,,,,,,,,,,,,,,,,,,,,,8.0,0.0,0.0,0.0
+MV7_subject_011_push_up_bad_side,pushup,299,0,247,0,5,0,5,,,,,,,,,,,,,,,,,,,,,,,,,5.0,0.0,0.0,0.0
+MV7_subject_011_push_up_good_side,pushup,184,0,132,0,9,0,9,,,,,,,,,,,,,,,,,,,,,,,,,9.0,0.0,0.0,0.0
+MV7_subject_013_push_up_bad_side,pushup,458,0,406,0,11,0,11,,,,,,,,,,,,,,,,,,,,,,,,,11.0,0.0,0.0,0.0
+MV7_subject_015_push_up_bad_side,pushup,205,0,153,0,4,0,4,,,,,,,,,,,,,,,,,,,,,,,,,4.0,0.0,3.0,0.0
+MV7_subject_016_push_up_bad_side,pushup,405,0,353,0,18,0,18,,,,,,,,,,,,,,,,,,,,,,,,,17.0,1.0,5.0,0.0
+MV7_subject_016_push_up_good_side,pushup,382,0,330,0,17,0,17,,,,,,,,,,,,,,,,,,,,,,,,,17.0,0.0,0.0,0.0
+MV7_subject_017_push_up_bad_side,pushup,227,0,175,0,10,0,10,,,,,,,,,,,,,,,,,,,,,,,,,10.0,0.0,0.0,0.0
+MV7_subject_017_push_up_good_side,pushup,158,0,106,0,7,0,7,,,,,,,,,,,,,,,,,,,,,,,,,7.0,0.0,0.0,0.0
+MV7_subject_018_push_up_bad_side,pushup,235,0,183,0,8,0,8,,,,,,,,,,,,,,,,,,,,,,,,,8.0,0.0,6.0,0.0
+MV7_subject_018_push_up_good_side,pushup,249,0,197,0,8,0,8,,,,,,,,,,,,,,,,,,,,,,,,,8.0,0.0,0.0,0.0
+MV7_subject_021_push_up_good_side,pushup,231,0,179,0,16,0,16,,,,,,,,,,,,,,,,,,,,,,,,,16.0,0.0,0.0,0.0
+MV7_subject_023_push_up_bad_side,pushup,207,0,155,0,8,0,8,,,,,,,,,,,,,,,,,,,,,,,,,7.0,1.0,0.0,0.0
+MV7_subject_023_push_up_good_side,pushup,290,0,238,0,11,0,11,,,,,,,,,,,,,,,,,,,,,,,,,11.0,0.0,0.0,0.0

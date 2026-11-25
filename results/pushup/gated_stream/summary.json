@@ -1,0 +1,89 @@
+{
+  "overall": {
+    "gate_no_replay": {
+      "videos": 23,
+      "manual_total": 259,
+      "auto_total": 215,
+      "exact_count_videos": 1,
+      "absolute_error_sum": 44,
+      "mean_absolute_error": 1.9130434782608696,
+      "normalized_count_accuracy": 0.8301158301158301,
+      "alignment_warnings": 23,
+      "unassessable_reps": 0,
+      "replayed_reps": 0
+    },
+    "gate_replay": {
+      "videos": 23,
+      "manual_total": 259,
+      "auto_total": 258,
+      "exact_count_videos": 18,
+      "absolute_error_sum": 5,
+      "mean_absolute_error": 0.21739130434782608,
+      "normalized_count_accuracy": 0.9806949806949807,
+      "alignment_warnings": 29,
+      "unassessable_reps": 3,
+      "replayed_reps": 32
+    },
+    "ungated": {
+      "videos": 23,
+      "manual_total": 259,
+      "auto_total": 258,
+      "exact_count_videos": 18,
+      "absolute_error_sum": 5,
+      "mean_absolute_error": 0.21739130434782608,
+      "normalized_count_accuracy": 0.9806949806949807,
+      "alignment_warnings": 29,
+      "unassessable_reps": 3,
+      "replayed_reps": 0
+    }
+  },
+  "new_groups": {
+    "gate_no_replay": {
+      "videos": 17,
+      "manual_total": 169,
+      "auto_total": 134,
+      "exact_count_videos": 0,
+      "absolute_error_sum": 35,
+      "mean_absolute_error": 2.0588235294117645,
+      "normalized_count_accuracy": 0.7928994082840237,
+      "alignment_warnings": 18,
+      "unassessable_reps": 0,
+      "replayed_reps": 0
+    },
+    "gate_replay": {
+      "videos": 17,
+      "manual_total": 169,
+      "auto_total": 171,
+      "exact_count_videos": 15,
+      "absolute_error_sum": 2,
+      "mean_absolute_error": 0.11764705882352941,
+      "normalized_count_accuracy": 0.9881656804733728,
+      "alignment_warnings": 25,
+      "unassessable_reps": 1,
+      "replayed_reps": 27
+    },
+    "ungated": {
+      "videos": 17,
+      "manual_total": 169,
+      "auto_total": 171,
+      "exact_count_videos": 15,
+      "absolute_error_sum": 2,
+      "mean_absolute_error": 0.11764705882352941,
+      "normalized_count_accuracy": 0.9881656804733728,
+      "alignment_warnings": 25,
+      "unassessable_reps": 1,
+      "replayed_reps": 0
+    }
+  },
+  "folds": 13,
+  "ungated_boundaries_verified": true,
+  "policy": {
+    "window_sec": 2,
+    "enter_sec": 1.5,
+    "exit_sec": 2.5,
+    "replay_max_sec": 6,
+    "pre_candidate_context_sec": 2,
+    "person_lost_sec": 3
+  },
+  "notes": "23 selected MV7 side clips only. No mixed-exercise negative test, no squat counter connected, no repeat GT. Clip labels weak. No warning is not Good. Fixed FPS only; provisional replay policy; no independent final test."
+}

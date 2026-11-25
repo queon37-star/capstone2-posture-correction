@@ -1,0 +1,89 @@
+{
+  "squat": {
+    "gt_reps": 195,
+    "detected_matched": 191,
+    "missed": 4,
+    "extra_detections": 0,
+    "mean_det_iou": 0.649,
+    "classified": 191,
+    "classification_failed": 0,
+    "failure_rate": 0.0,
+    "accuracy_classified": 0.8586,
+    "accuracy_matched_unknown_wrong": 0.8586,
+    "accuracy_end_to_end": 0.841,
+    "bad_recall_classified": 0.8833,
+    "bad_precision_classified": 0.726,
+    "bad_recall_end_to_end": 0.8689,
+    "balanced_accuracy_classified": 0.8653,
+    "confusion_classified": {
+      "good_as_good": 111,
+      "good_as_bad": 20,
+      "bad_as_good": 7,
+      "bad_as_bad": 53
+    },
+    "pre_context_lt16": 73,
+    "pre_context_negative": 1,
+    "pre_context_median": 16,
+    "window_full_gt_coverage": 52,
+    "matched_before_first_confirm": 8,
+    "matched_before_session_confirm": 8,
+    "matched_with_known_session_confirm": 191
+  },
+  "pushup": {
+    "manual_total": 259,
+    "auto_total": 258,
+    "absolute_error_sum": 5,
+    "normalized_count_accuracy": 0.9806949806949807,
+    "alignment_warnings": 29,
+    "unassessable": 3,
+    "false_squat": 0
+  },
+  "other": {
+    "gt_frames": 28819,
+    "false_squat_overlap": 8,
+    "false_pushup_overlap": 0
+  },
+  "false_pushup_on_squat": 0,
+  "reference_checks": {
+    "other": {
+      "sum": 18,
+      "count": 18
+    },
+    "pushup": {
+      "sum": 23,
+      "count": 23
+    },
+    "squat": {
+      "sum": 9,
+      "count": 9
+    }
+  },
+  "mixed_streams": 6,
+  "mixed_sources": [
+    {
+      "squat": "PM_008",
+      "other": "Ex3_Camera17_PM_010",
+      "other_exercise": "table_pushup",
+      "pushup": "MV7_subject_004_push_up_good_side",
+      "heldout_rehab24": "rehab24:1",
+      "heldout_mv7": "mv7:subject_004"
+    },
+    {
+      "squat": "PM_022",
+      "other": "Ex5_Camera17_PM_021",
+      "other_exercise": "lunge",
+      "pushup": "MV7_subject_006_push_up_bad_side",
+      "heldout_rehab24": "rehab24:2",
+      "heldout_mv7": "mv7:subject_005"
+    },
+    {
+      "squat": "PM_029",
+      "other": "Ex5_Camera17_PM_028",
+      "other_exercise": "lunge",
+      "pushup": "MV7_subject_010_push_up_bad_side",
+      "heldout_rehab24": "rehab24:3",
+      "heldout_mv7": "mv7:subject_010"
+    }
+  ],
+  "notes": "Native clips + synthetic 30 FPS concatenations; repeated frames in mixed push-up only; no actual transition GT. Native reference checks report differences without tuning. Push-up feedback is not Good/Bad. Fixed FPS offline only; no hardware deployment."
+}

@@ -1,0 +1,68 @@
+{
+  "all": {
+    "videos": 23,
+    "groups": 13,
+    "manual_total": 259,
+    "causal_total": 258,
+    "exact_count_videos": 18,
+    "mean_absolute_count_error": 0.21739130434782608,
+    "total_absolute_error": 5,
+    "undercount_total": 3,
+    "overcount_total": 2
+  },
+  "pilot_group": {
+    "videos": 6,
+    "groups": 3,
+    "manual_total": 90,
+    "causal_total": 87,
+    "exact_count_videos": 3,
+    "mean_absolute_count_error": 0.5,
+    "total_absolute_error": 3,
+    "undercount_total": 3,
+    "overcount_total": 0
+  },
+  "new_group": {
+    "videos": 17,
+    "groups": 10,
+    "manual_total": 169,
+    "causal_total": 171,
+    "exact_count_videos": 15,
+    "mean_absolute_count_error": 0.11764705882352941,
+    "total_absolute_error": 2,
+    "undercount_total": 0,
+    "overcount_total": 2
+  },
+  "new_group_by_clip_label": {
+    "0": {
+      "videos": 9,
+      "groups": 8,
+      "manual_total": 78,
+      "causal_total": 80,
+      "exact_count_videos": 7,
+      "mean_absolute_count_error": 0.2222222222222222,
+      "total_absolute_error": 2,
+      "undercount_total": 0,
+      "overcount_total": 2
+    },
+    "1": {
+      "videos": 8,
+      "groups": 8,
+      "manual_total": 91,
+      "causal_total": 91,
+      "exact_count_videos": 8,
+      "mean_absolute_count_error": 0.0,
+      "total_absolute_error": 0,
+      "undercount_total": 0,
+      "overcount_total": 0
+    }
+  },
+  "config": {
+    "depth": 0.18,
+    "recovery": 0.75,
+    "scale_history_sec": 1.5,
+    "median_sec": 0.2
+  },
+  "manual_counts_sha256": "5147de06b5491eead60a96c136d60a926d899d2dd388b78ce4850a57e6e74dd8",
+  "counter_source_sha256": "92993eebb9c6ea4292be423c7d7050345c4828f754ece25653ea8a9f6e6248f5",
+  "notes": "Frozen counter, no exercise gating. New groups exclude all pilot groups. Clip count errors only, not matched recall. Candidate intervals are NOT GT; clip_label is NOT a repetition label."
+}

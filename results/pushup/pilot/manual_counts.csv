@@ -1,0 +1,7 @@
+sample_id,video_path,manual_rep_count,notes
+MV7_subject_001_push_up_good_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_001/push_up/good/side/subject_001_push_up_good_side.mp4,12,
+MV7_subject_001_push_up_bad_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_001/push_up/bad/side/subject_001_push_up_bad_side.mp4,18,
+MV7_subject_002_push_up_good_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_002/push_up/good/side/subject_002_push_up_good_side.mp4,12,
+MV7_subject_002_push_up_bad_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_002/push_up/bad/side/subject_002_push_up_bad_side.mp4,14,
+MV7_subject_003_push_up_good_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_003/push_up/good/side/subject_003_push_up_good_side.mp4,19,
+MV7_subject_003_push_up_bad_side,/home/siwon/capstone2/datasets/MultiView-Fitness-7/Dataset Subject-wise/subject_003/push_up/bad/side/subject_003_push_up_bad_side.mp4,15,

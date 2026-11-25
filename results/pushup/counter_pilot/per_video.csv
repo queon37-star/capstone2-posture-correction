@@ -1,0 +1,7 @@
+sample_id,fps,frames,manual_count,diagnostic_count,causal_count,signed_error,absolute_error,valid_signal_pct
+MV7_subject_001_push_up_good_side,15.0,434,12,12,12,0,0,96.7741935483871
+MV7_subject_001_push_up_bad_side,15.0,378,18,18,17,-1,1,99.73544973544973
+MV7_subject_002_push_up_good_side,15.0,468,12,12,12,0,0,99.78632478632478
+MV7_subject_002_push_up_bad_side,15.0,476,14,14,14,0,0,99.78991596638656
+MV7_subject_003_push_up_good_side,15.0,450,19,18,18,-1,1,99.77777777777777
+MV7_subject_003_push_up_bad_side,15.0,458,15,14,14,-1,1,99.78165938864629

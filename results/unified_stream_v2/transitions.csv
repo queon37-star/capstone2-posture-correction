@@ -1,0 +1,488 @@
+stream,type,exercise,frame_id,t,raw,session_id,reason,session_reps
+PM_008,label_change,other,104,3.467,other,,,
+PM_008,label_change,squat,181,6.033,squat,,,
+PM_008,session_start,squat,181,6.033,,1.0,,
+PM_008,label_change,other,818,27.267,other,,,
+PM_008,session_end,squat,818,27.267,,1.0,label change,5.0
+PM_008,label_change,squat,1526,50.867,squat,,,
+PM_008,session_start,squat,1526,50.867,,2.0,,
+PM_008,label_change,other,2075,69.167,other,,,
+PM_008,session_end,squat,2075,69.167,,2.0,label change,4.0
+PM_008,label_change,squat,2904,96.8,squat,,,
+PM_008,session_start,squat,2904,96.8,,3.0,,
+PM_008,label_change,other,3476,115.867,other,,,
+PM_008,session_end,squat,3476,115.867,,3.0,label change,5.0
+PM_008,label_change,squat,4017,133.9,squat,,,
+PM_008,session_start,squat,4017,133.9,,4.0,,
+PM_008,label_change,other,4677,155.9,other,,,
+PM_008,session_end,squat,4677,155.9,,4.0,label change,5.0
+PM_008,label_change,squat,4727,157.567,squat,,,
+PM_008,session_start,squat,4727,157.567,,5.0,,
+PM_008,session_end,squat,-1,-1.0,,5.0,stream end,4.0
+PM_022,label_change,squat,148,4.933,squat,,,
+PM_022,session_start,squat,148,4.933,,1.0,,
+PM_022,label_change,other,614,20.467,other,,,
+PM_022,session_end,squat,614,20.467,,1.0,label change,5.0
+PM_022,label_change,squat,783,26.1,squat,,,
+PM_022,session_start,squat,783,26.1,,2.0,,
+PM_022,label_change,other,1342,44.733,other,,,
+PM_022,session_end,squat,1342,44.733,,2.0,label change,5.0
+PM_022,label_change,squat,1540,51.333,squat,,,
+PM_022,session_start,squat,1540,51.333,,3.0,,
+PM_022,label_change,other,1858,61.933,other,,,
+PM_022,session_end,squat,1858,61.933,,3.0,label change,3.0
+PM_022,label_change,squat,1941,64.7,squat,,,
+PM_022,session_start,squat,1941,64.7,,4.0,,
+PM_022,session_end,squat,-1,-1.0,,4.0,stream end,9.0
+PM_029,label_change,squat,147,4.9,squat,,,
+PM_029,session_start,squat,147,4.9,,1.0,,
+PM_029,label_change,other,900,30.0,other,,,
+PM_029,session_end,squat,900,30.0,,1.0,label change,5.0
+PM_029,label_change,squat,985,32.833,squat,,,
+PM_029,session_start,squat,985,32.833,,2.0,,
+PM_029,label_change,other,1561,52.033,other,,,
+PM_029,session_end,squat,1561,52.033,,2.0,label change,5.0
+PM_029,label_change,squat,1854,61.8,squat,,,
+PM_029,session_start,squat,1854,61.8,,3.0,,
+PM_029,label_change,other,2484,82.8,other,,,
+PM_029,session_end,squat,2484,82.8,,3.0,label change,5.0
+PM_029,label_change,squat,2569,85.633,squat,,,
+PM_029,session_start,squat,2569,85.633,,4.0,,
+PM_029,label_change,other,3074,102.467,other,,,
+PM_029,session_end,squat,3074,102.467,,4.0,label change,5.0
+PM_038,label_change,other,104,3.467,other,,,
+PM_038,label_change,squat,157,5.233,squat,,,
+PM_038,session_start,squat,157,5.233,,1.0,,
+PM_038,label_change,other,1238,41.267,other,,,
+PM_038,session_end,squat,1238,41.267,,1.0,label change,10.0
+PM_038,label_change,squat,1444,48.133,squat,,,
+PM_038,session_start,squat,1444,48.133,,2.0,,
+PM_038,label_change,other,2463,82.1,other,,,
+PM_038,session_end,squat,2463,82.1,,2.0,label change,10.0
+PM_043,label_change,other,104,3.467,other,,,
+PM_043,label_change,squat,394,13.133,squat,,,
+PM_043,session_start,squat,394,13.133,,1.0,,
+PM_043,label_change,other,841,28.033,other,,,
+PM_043,session_end,squat,841,28.033,,1.0,label change,4.0
+PM_043,label_change,squat,896,29.867,squat,,,
+PM_043,session_start,squat,896,29.867,,2.0,,
+PM_043,label_change,other,1042,34.733,other,,,
+PM_043,session_end,squat,1042,34.733,,2.0,label change,1.0
+PM_043,label_change,squat,1492,49.733,squat,,,
+PM_043,session_start,squat,1492,49.733,,3.0,,
+PM_043,label_change,other,1984,66.133,other,,,
+PM_043,session_end,squat,1984,66.133,,3.0,label change,5.0
+PM_043,label_change,squat,2326,77.533,squat,,,
+PM_043,session_start,squat,2326,77.533,,4.0,,
+PM_043,label_change,other,3444,114.8,other,,,
+PM_043,session_end,squat,3444,114.8,,4.0,label change,10.0
+PM_105,label_change,squat,104,3.467,squat,,,
+PM_105,session_start,squat,104,3.467,,1.0,,
+PM_105,label_change,other,593,19.767,other,,,
+PM_105,session_end,squat,593,19.767,,1.0,label change,5.0
+PM_105,label_change,squat,861,28.7,squat,,,
+PM_105,session_start,squat,861,28.7,,2.0,,
+PM_105,label_change,other,1407,46.9,other,,,
+PM_105,session_end,squat,1407,46.9,,2.0,label change,5.0
+PM_105,label_change,squat,1787,59.567,squat,,,
+PM_105,session_start,squat,1787,59.567,,3.0,,
+PM_105,label_change,other,2485,82.833,other,,,
+PM_105,session_end,squat,2485,82.833,,3.0,label change,6.0
+PM_105,label_change,squat,2876,95.867,squat,,,
+PM_105,session_start,squat,2876,95.867,,4.0,,
+PM_105,session_end,squat,-1,-1.0,,4.0,stream end,5.0
+PM_126,label_change,other,104,3.467,other,,,
+PM_126,label_change,squat,272,9.067,squat,,,
+PM_126,session_start,squat,272,9.067,,1.0,,
+PM_126,label_change,other,1568,52.267,other,,,
+PM_126,session_end,squat,1568,52.267,,1.0,label change,10.0
+PM_126,label_change,squat,1941,64.7,squat,,,
+PM_126,session_start,squat,1941,64.7,,2.0,,
+PM_126,session_end,squat,-1,-1.0,,2.0,stream end,10.0
+PM_113,label_change,other,104,3.467,other,,,
+PM_113,label_change,squat,174,5.8,squat,,,
+PM_113,session_start,squat,174,5.8,,1.0,,
+PM_113,label_change,other,891,29.7,other,,,
+PM_113,session_end,squat,891,29.7,,1.0,label change,5.0
+PM_113,label_change,squat,1024,34.133,squat,,,
+PM_113,session_start,squat,1024,34.133,,2.0,,
+PM_113,label_change,other,1564,52.133,other,,,
+PM_113,session_end,squat,1564,52.133,,2.0,label change,5.0
+PM_113,label_change,squat,1760,58.667,squat,,,
+PM_113,session_start,squat,1760,58.667,,3.0,,
+PM_113,label_change,other,2702,90.067,other,,,
+PM_113,session_end,squat,2702,90.067,,3.0,label change,6.0
+PM_113,label_change,squat,3094,103.133,squat,,,
+PM_113,session_start,squat,3094,103.133,,4.0,,
+PM_113,label_change,other,3877,129.233,other,,,
+PM_113,session_end,squat,3877,129.233,,4.0,label change,6.0
+PM_118,label_change,squat,110,3.667,squat,,,
+PM_118,session_start,squat,110,3.667,,1.0,,
+PM_118,label_change,other,652,21.733,other,,,
+PM_118,session_end,squat,652,21.733,,1.0,label change,6.0
+PM_118,label_change,squat,836,27.867,squat,,,
+PM_118,session_start,squat,836,27.867,,2.0,,
+PM_118,label_change,other,1215,40.5,other,,,
+PM_118,session_end,squat,1215,40.5,,2.0,label change,5.0
+PM_118,label_change,squat,1515,50.5,squat,,,
+PM_118,session_start,squat,1515,50.5,,3.0,,
+PM_118,session_end,squat,-1,-1.0,,3.0,stream end,12.0
+Ex3_Camera17_PM_010,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_010,label_change,squat,1114,37.133,squat,,,
+Ex3_Camera17_PM_010,session_start,squat,1114,37.133,,1.0,,
+Ex3_Camera17_PM_010,label_change,other,1347,44.9,other,,,
+Ex3_Camera17_PM_010,session_end,squat,1347,44.9,,1.0,label change,0.0
+Ex3_Camera17_PM_011,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_030,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_031,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_031,label_change,squat,937,31.233,squat,,,
+Ex3_Camera17_PM_031,session_start,squat,937,31.233,,1.0,,
+Ex3_Camera17_PM_031,label_change,other,1022,34.067,other,,,
+Ex3_Camera17_PM_031,session_end,squat,1022,34.067,,1.0,label change,0.0
+Ex3_Camera17_PM_044,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_107,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_107,label_change,squat,634,21.133,squat,,,
+Ex3_Camera17_PM_107,session_start,squat,634,21.133,,1.0,,
+Ex3_Camera17_PM_107,label_change,other,778,25.933,other,,,
+Ex3_Camera17_PM_107,session_end,squat,778,25.933,,1.0,label change,0.0
+Ex3_Camera17_PM_108,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_119,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_121,label_change,other,104,3.467,other,,,
+Ex3_Camera17_PM_121,label_change,squat,1146,38.2,squat,,,
+Ex3_Camera17_PM_121,session_start,squat,1146,38.2,,1.0,,
+Ex3_Camera17_PM_121,label_change,other,1237,41.233,other,,,
+Ex3_Camera17_PM_121,session_end,squat,1237,41.233,,1.0,label change,0.0
+Ex3_Camera17_PM_121,label_change,squat,1421,47.367,squat,,,
+Ex3_Camera17_PM_121,session_start,squat,1421,47.367,,2.0,,
+Ex3_Camera17_PM_121,session_end,squat,-1,-1.0,,2.0,stream end,0.0
+Ex5_Camera17_PM_021,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_028,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_037,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_037,label_change,squat,624,20.8,squat,,,
+Ex5_Camera17_PM_037,session_start,squat,624,20.8,,1.0,,
+Ex5_Camera17_PM_037,label_change,other,817,27.233,other,,,
+Ex5_Camera17_PM_037,session_end,squat,817,27.233,,1.0,label change,2.0
+Ex5_Camera17_PM_042,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_042,label_change,squat,747,24.9,squat,,,
+Ex5_Camera17_PM_042,session_start,squat,747,24.9,,1.0,,
+Ex5_Camera17_PM_042,label_change,other,1229,40.967,other,,,
+Ex5_Camera17_PM_042,session_end,squat,1229,40.967,,1.0,label change,4.0
+Ex5_Camera17_PM_104,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_112,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_117a,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_117b,label_change,other,143,4.767,other,,,
+Ex5_Camera17_PM_125,label_change,other,104,3.467,other,,,
+Ex5_Camera17_PM_125,label_change,squat,743,24.767,squat,,,
+Ex5_Camera17_PM_125,session_start,squat,743,24.767,,1.0,,
+Ex5_Camera17_PM_125,label_change,other,834,27.8,other,,,
+Ex5_Camera17_PM_125,session_end,squat,834,27.8,,1.0,label change,0.0
+Ex5_Camera17_PM_125,label_change,squat,1173,39.1,squat,,,
+Ex5_Camera17_PM_125,session_start,squat,1173,39.1,,2.0,,
+Ex5_Camera17_PM_125,label_change,other,1406,46.867,other,,,
+Ex5_Camera17_PM_125,session_end,squat,1406,46.867,,2.0,label change,2.0
+MV7_subject_001_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_001_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_001_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_001_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_001_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_001_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_002_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_002_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_002_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_002_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_002_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_002_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_003_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_003_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_003_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_003_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_003_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_003_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_004_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_004_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_004_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_006_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_006_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_006_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_006_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_006_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_006_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_010_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_010_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_010_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_011_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_011_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_011_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_011_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_011_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_011_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_013_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_013_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_013_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_015_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_015_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_015_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_016_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_016_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_016_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_016_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_016_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_016_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_017_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_017_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_017_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_017_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_017_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_017_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_018_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_018_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_018_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_018_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_018_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_018_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_021_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_021_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_021_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_023_push_up_bad_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_023_push_up_bad_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_023_push_up_bad_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+MV7_subject_023_push_up_good_side,label_change,pushup,52,3.467,pushup,,,
+MV7_subject_023_push_up_good_side,session_start,pushup,52,3.467,,1.0,,
+MV7_subject_023_push_up_good_side,session_end,pushup,-1,-1.0,,1.0,stream end,
+mixed_1_direct,label_change,other,104,3.467,other,,,
+mixed_1_direct,label_change,squat,181,6.033,squat,,,
+mixed_1_direct,session_start,squat,181,6.033,,1.0,,
+mixed_1_direct,label_change,other,818,27.267,other,,,
+mixed_1_direct,session_end,squat,818,27.267,,1.0,label change,5.0
+mixed_1_direct,label_change,squat,1526,50.867,squat,,,
+mixed_1_direct,session_start,squat,1526,50.867,,2.0,,
+mixed_1_direct,label_change,other,2075,69.167,other,,,
+mixed_1_direct,session_end,squat,2075,69.167,,2.0,label change,4.0
+mixed_1_direct,label_change,squat,2904,96.8,squat,,,
+mixed_1_direct,session_start,squat,2904,96.8,,3.0,,
+mixed_1_direct,label_change,other,3476,115.867,other,,,
+mixed_1_direct,session_end,squat,3476,115.867,,3.0,label change,5.0
+mixed_1_direct,label_change,squat,4017,133.9,squat,,,
+mixed_1_direct,session_start,squat,4017,133.9,,4.0,,
+mixed_1_direct,label_change,other,4677,155.9,other,,,
+mixed_1_direct,session_end,squat,4677,155.9,,4.0,label change,5.0
+mixed_1_direct,label_change,squat,4727,157.567,squat,,,
+mixed_1_direct,session_start,squat,4727,157.567,,5.0,,
+mixed_1_direct,label_change,other,5267,175.567,other,,,
+mixed_1_direct,session_end,squat,5267,175.567,,5.0,label change,4.0
+mixed_1_direct,label_change,squat,6174,205.8,squat,,,
+mixed_1_direct,session_start,squat,6174,205.8,,6.0,,
+mixed_1_direct,label_change,other,6538,217.933,other,,,
+mixed_1_direct,session_end,squat,6538,217.933,,6.0,label change,0.0
+mixed_1_direct,label_change,pushup,9360,312.0,pushup,,,
+mixed_1_direct,session_start,pushup,9360,312.0,,7.0,,
+mixed_1_direct,label_change,squat,10055,335.167,squat,,,
+mixed_1_direct,session_end,pushup,10055,335.167,,7.0,label change,
+mixed_1_direct,session_start,squat,10055,335.167,,8.0,,
+mixed_1_direct,label_change,other,10692,356.4,other,,,
+mixed_1_direct,session_end,squat,10692,356.4,,8.0,label change,4.0
+mixed_1_direct,label_change,squat,11400,380.0,squat,,,
+mixed_1_direct,session_start,squat,11400,380.0,,9.0,,
+mixed_1_direct,label_change,other,11949,398.3,other,,,
+mixed_1_direct,session_end,squat,11949,398.3,,9.0,label change,4.0
+mixed_1_direct,label_change,squat,12778,425.933,squat,,,
+mixed_1_direct,session_start,squat,12778,425.933,,10.0,,
+mixed_1_direct,label_change,other,13350,445.0,other,,,
+mixed_1_direct,session_end,squat,13350,445.0,,10.0,label change,5.0
+mixed_1_direct,label_change,squat,13891,463.033,squat,,,
+mixed_1_direct,session_start,squat,13891,463.033,,11.0,,
+mixed_1_direct,label_change,other,14551,485.033,other,,,
+mixed_1_direct,session_end,squat,14551,485.033,,11.0,label change,5.0
+mixed_1_direct,label_change,squat,14601,486.7,squat,,,
+mixed_1_direct,session_start,squat,14601,486.7,,12.0,,
+mixed_1_direct,session_end,squat,-1,-1.0,,12.0,stream end,4.0
+mixed_1_gap4s,label_change,other,104,3.467,other,,,
+mixed_1_gap4s,label_change,squat,181,6.033,squat,,,
+mixed_1_gap4s,session_start,squat,181,6.033,,1.0,,
+mixed_1_gap4s,label_change,other,818,27.267,other,,,
+mixed_1_gap4s,session_end,squat,818,27.267,,1.0,label change,5.0
+mixed_1_gap4s,label_change,squat,1526,50.867,squat,,,
+mixed_1_gap4s,session_start,squat,1526,50.867,,2.0,,
+mixed_1_gap4s,label_change,other,2075,69.167,other,,,
+mixed_1_gap4s,session_end,squat,2075,69.167,,2.0,label change,4.0
+mixed_1_gap4s,label_change,squat,2904,96.8,squat,,,
+mixed_1_gap4s,session_start,squat,2904,96.8,,3.0,,
+mixed_1_gap4s,label_change,other,3476,115.867,other,,,
+mixed_1_gap4s,session_end,squat,3476,115.867,,3.0,label change,5.0
+mixed_1_gap4s,label_change,squat,4017,133.9,squat,,,
+mixed_1_gap4s,session_start,squat,4017,133.9,,4.0,,
+mixed_1_gap4s,label_change,other,4677,155.9,other,,,
+mixed_1_gap4s,session_end,squat,4677,155.9,,4.0,label change,5.0
+mixed_1_gap4s,label_change,squat,4727,157.567,squat,,,
+mixed_1_gap4s,session_start,squat,4727,157.567,,5.0,,
+mixed_1_gap4s,session_end,squat,5280,176.0,,5.0,person lost,4.0
+mixed_1_gap4s,label_change,other,5409,180.3,other,,,
+mixed_1_gap4s,label_change,squat,6294,209.8,squat,,,
+mixed_1_gap4s,session_start,squat,6294,209.8,,6.0,,
+mixed_1_gap4s,label_change,other,6658,221.933,other,,,
+mixed_1_gap4s,session_end,squat,6658,221.933,,6.0,label change,0.0
+mixed_1_gap4s,label_change,pushup,9600,320.0,pushup,,,
+mixed_1_gap4s,session_start,pushup,9600,320.0,,7.0,,
+mixed_1_gap4s,session_end,pushup,10203,340.1,,7.0,person lost,
+mixed_1_gap4s,label_change,other,10332,344.4,other,,,
+mixed_1_gap4s,label_change,squat,10415,347.167,squat,,,
+mixed_1_gap4s,session_start,squat,10415,347.167,,8.0,,
+mixed_1_gap4s,label_change,other,11052,368.4,other,,,
+mixed_1_gap4s,session_end,squat,11052,368.4,,8.0,label change,5.0
+mixed_1_gap4s,label_change,squat,11760,392.0,squat,,,
+mixed_1_gap4s,session_start,squat,11760,392.0,,9.0,,
+mixed_1_gap4s,label_change,other,12309,410.3,other,,,
+mixed_1_gap4s,session_end,squat,12309,410.3,,9.0,label change,4.0
+mixed_1_gap4s,label_change,squat,13138,437.933,squat,,,
+mixed_1_gap4s,session_start,squat,13138,437.933,,10.0,,
+mixed_1_gap4s,label_change,other,13710,457.0,other,,,
+mixed_1_gap4s,session_end,squat,13710,457.0,,10.0,label change,5.0
+mixed_1_gap4s,label_change,squat,14251,475.033,squat,,,
+mixed_1_gap4s,session_start,squat,14251,475.033,,11.0,,
+mixed_1_gap4s,label_change,other,14911,497.033,other,,,
+mixed_1_gap4s,session_end,squat,14911,497.033,,11.0,label change,5.0
+mixed_1_gap4s,label_change,squat,14961,498.7,squat,,,
+mixed_1_gap4s,session_start,squat,14961,498.7,,12.0,,
+mixed_1_gap4s,session_end,squat,-1,-1.0,,12.0,stream end,4.0
+mixed_2_direct,label_change,squat,148,4.933,squat,,,
+mixed_2_direct,session_start,squat,148,4.933,,1.0,,
+mixed_2_direct,label_change,other,614,20.467,other,,,
+mixed_2_direct,session_end,squat,614,20.467,,1.0,label change,5.0
+mixed_2_direct,label_change,squat,781,26.033,squat,,,
+mixed_2_direct,session_start,squat,781,26.033,,2.0,,
+mixed_2_direct,label_change,other,1342,44.733,other,,,
+mixed_2_direct,session_end,squat,1342,44.733,,2.0,label change,5.0
+mixed_2_direct,label_change,squat,1539,51.3,squat,,,
+mixed_2_direct,session_start,squat,1539,51.3,,3.0,,
+mixed_2_direct,label_change,other,1858,61.933,other,,,
+mixed_2_direct,session_end,squat,1858,61.933,,3.0,label change,3.0
+mixed_2_direct,label_change,squat,1941,64.7,squat,,,
+mixed_2_direct,session_start,squat,1941,64.7,,4.0,,
+mixed_2_direct,label_change,other,2837,94.567,other,,,
+mixed_2_direct,session_end,squat,2837,94.567,,4.0,label change,9.0
+mixed_2_direct,label_change,pushup,5667,188.9,pushup,,,
+mixed_2_direct,session_start,pushup,5667,188.9,,5.0,,
+mixed_2_direct,label_change,squat,6295,209.833,squat,,,
+mixed_2_direct,session_end,pushup,6295,209.833,,5.0,label change,
+mixed_2_direct,session_start,squat,6295,209.833,,6.0,,
+mixed_2_direct,label_change,other,6761,225.367,other,,,
+mixed_2_direct,session_end,squat,6761,225.367,,6.0,label change,4.0
+mixed_2_direct,label_change,squat,6928,230.933,squat,,,
+mixed_2_direct,session_start,squat,6928,230.933,,7.0,,
+mixed_2_direct,label_change,other,7489,249.633,other,,,
+mixed_2_direct,session_end,squat,7489,249.633,,7.0,label change,5.0
+mixed_2_direct,label_change,squat,7686,256.2,squat,,,
+mixed_2_direct,session_start,squat,7686,256.2,,8.0,,
+mixed_2_direct,label_change,other,8005,266.833,other,,,
+mixed_2_direct,session_end,squat,8005,266.833,,8.0,label change,3.0
+mixed_2_direct,label_change,squat,8088,269.6,squat,,,
+mixed_2_direct,session_start,squat,8088,269.6,,9.0,,
+mixed_2_direct,session_end,squat,-1,-1.0,,9.0,stream end,9.0
+mixed_2_gap4s,label_change,squat,148,4.933,squat,,,
+mixed_2_gap4s,session_start,squat,148,4.933,,1.0,,
+mixed_2_gap4s,label_change,other,614,20.467,other,,,
+mixed_2_gap4s,session_end,squat,614,20.467,,1.0,label change,5.0
+mixed_2_gap4s,label_change,squat,781,26.033,squat,,,
+mixed_2_gap4s,session_start,squat,781,26.033,,2.0,,
+mixed_2_gap4s,label_change,other,1342,44.733,other,,,
+mixed_2_gap4s,session_end,squat,1342,44.733,,2.0,label change,5.0
+mixed_2_gap4s,label_change,squat,1539,51.3,squat,,,
+mixed_2_gap4s,session_start,squat,1539,51.3,,3.0,,
+mixed_2_gap4s,label_change,other,1858,61.933,other,,,
+mixed_2_gap4s,session_end,squat,1858,61.933,,3.0,label change,3.0
+mixed_2_gap4s,label_change,squat,1941,64.7,squat,,,
+mixed_2_gap4s,session_start,squat,1941,64.7,,4.0,,
+mixed_2_gap4s,session_end,squat,2846,94.867,,4.0,person lost,9.0
+mixed_2_gap4s,label_change,other,2975,99.167,other,,,
+mixed_2_gap4s,label_change,pushup,5941,198.033,pushup,,,
+mixed_2_gap4s,session_start,pushup,5941,198.033,,5.0,,
+mixed_2_gap4s,session_end,pushup,6476,215.867,,5.0,person lost,
+mixed_2_gap4s,label_change,other,6605,220.167,other,,,
+mixed_2_gap4s,label_change,squat,6655,221.833,squat,,,
+mixed_2_gap4s,session_start,squat,6655,221.833,,6.0,,
+mixed_2_gap4s,label_change,other,7121,237.367,other,,,
+mixed_2_gap4s,session_end,squat,7121,237.367,,6.0,label change,5.0
+mixed_2_gap4s,label_change,squat,7288,242.933,squat,,,
+mixed_2_gap4s,session_start,squat,7288,242.933,,7.0,,
+mixed_2_gap4s,label_change,other,7849,261.633,other,,,
+mixed_2_gap4s,session_end,squat,7849,261.633,,7.0,label change,5.0
+mixed_2_gap4s,label_change,squat,8046,268.2,squat,,,
+mixed_2_gap4s,session_start,squat,8046,268.2,,8.0,,
+mixed_2_gap4s,label_change,other,8365,278.833,other,,,
+mixed_2_gap4s,session_end,squat,8365,278.833,,8.0,label change,3.0
+mixed_2_gap4s,label_change,squat,8448,281.6,squat,,,
+mixed_2_gap4s,session_start,squat,8448,281.6,,9.0,,
+mixed_2_gap4s,session_end,squat,-1,-1.0,,9.0,stream end,9.0
+mixed_3_direct,label_change,squat,147,4.9,squat,,,
+mixed_3_direct,session_start,squat,147,4.9,,1.0,,
+mixed_3_direct,label_change,other,901,30.033,other,,,
+mixed_3_direct,session_end,squat,901,30.033,,1.0,label change,5.0
+mixed_3_direct,label_change,squat,985,32.833,squat,,,
+mixed_3_direct,session_start,squat,985,32.833,,2.0,,
+mixed_3_direct,label_change,other,1563,52.1,other,,,
+mixed_3_direct,session_end,squat,1563,52.1,,2.0,label change,5.0
+mixed_3_direct,label_change,squat,1854,61.8,squat,,,
+mixed_3_direct,session_start,squat,1854,61.8,,3.0,,
+mixed_3_direct,label_change,other,2484,82.8,other,,,
+mixed_3_direct,session_end,squat,2484,82.8,,3.0,label change,5.0
+mixed_3_direct,label_change,squat,2569,85.633,squat,,,
+mixed_3_direct,session_start,squat,2569,85.633,,4.0,,
+mixed_3_direct,label_change,other,3075,102.5,other,,,
+mixed_3_direct,session_end,squat,3075,102.5,,4.0,label change,5.0
+mixed_3_direct,label_change,pushup,6802,226.733,pushup,,,
+mixed_3_direct,session_start,pushup,6802,226.733,,5.0,,
+mixed_3_direct,label_change,other,7458,248.6,other,,,
+mixed_3_direct,session_end,pushup,7458,248.6,,5.0,label change,
+mixed_3_direct,label_change,squat,7518,250.6,squat,,,
+mixed_3_direct,session_start,squat,7518,250.6,,6.0,,
+mixed_3_direct,label_change,other,8273,275.767,other,,,
+mixed_3_direct,session_end,squat,8273,275.767,,6.0,label change,5.0
+mixed_3_direct,label_change,squat,8356,278.533,squat,,,
+mixed_3_direct,session_start,squat,8356,278.533,,7.0,,
+mixed_3_direct,label_change,other,8935,297.833,other,,,
+mixed_3_direct,session_end,squat,8935,297.833,,7.0,label change,5.0
+mixed_3_direct,label_change,squat,9226,307.533,squat,,,
+mixed_3_direct,session_start,squat,9226,307.533,,8.0,,
+mixed_3_direct,label_change,other,9856,328.533,other,,,
+mixed_3_direct,session_end,squat,9856,328.533,,8.0,label change,5.0
+mixed_3_direct,label_change,squat,9941,331.367,squat,,,
+mixed_3_direct,session_start,squat,9941,331.367,,9.0,,
+mixed_3_direct,label_change,other,10447,348.233,other,,,
+mixed_3_direct,session_end,squat,10447,348.233,,9.0,label change,5.0
+mixed_3_gap4s,label_change,squat,147,4.9,squat,,,
+mixed_3_gap4s,session_start,squat,147,4.9,,1.0,,
+mixed_3_gap4s,label_change,other,901,30.033,other,,,
+mixed_3_gap4s,session_end,squat,901,30.033,,1.0,label change,5.0
+mixed_3_gap4s,label_change,squat,985,32.833,squat,,,
+mixed_3_gap4s,session_start,squat,985,32.833,,2.0,,
+mixed_3_gap4s,label_change,other,1563,52.1,other,,,
+mixed_3_gap4s,session_end,squat,1563,52.1,,2.0,label change,5.0
+mixed_3_gap4s,label_change,squat,1854,61.8,squat,,,
+mixed_3_gap4s,session_start,squat,1854,61.8,,3.0,,
+mixed_3_gap4s,label_change,other,2484,82.8,other,,,
+mixed_3_gap4s,session_end,squat,2484,82.8,,3.0,label change,5.0
+mixed_3_gap4s,label_change,squat,2569,85.633,squat,,,
+mixed_3_gap4s,session_start,squat,2569,85.633,,4.0,,
+mixed_3_gap4s,label_change,other,3075,102.5,other,,,
+mixed_3_gap4s,session_end,squat,3075,102.5,,4.0,label change,5.0
+mixed_3_gap4s,label_change,other,3308,110.267,other,,,
+mixed_3_gap4s,label_change,pushup,7066,235.533,pushup,,,
+mixed_3_gap4s,session_start,pushup,7066,235.533,,5.0,,
+mixed_3_gap4s,session_end,pushup,7701,256.7,,5.0,person lost,
+mixed_3_gap4s,label_change,other,7830,261.0,other,,,
+mixed_3_gap4s,label_change,squat,7878,262.6,squat,,,
+mixed_3_gap4s,session_start,squat,7878,262.6,,6.0,,
+mixed_3_gap4s,label_change,other,8633,287.767,other,,,
+mixed_3_gap4s,session_end,squat,8633,287.767,,6.0,label change,5.0
+mixed_3_gap4s,label_change,squat,8716,290.533,squat,,,
+mixed_3_gap4s,session_start,squat,8716,290.533,,7.0,,
+mixed_3_gap4s,label_change,other,9295,309.833,other,,,
+mixed_3_gap4s,session_end,squat,9295,309.833,,7.0,label change,5.0
+mixed_3_gap4s,label_change,squat,9586,319.533,squat,,,
+mixed_3_gap4s,session_start,squat,9586,319.533,,8.0,,
+mixed_3_gap4s,label_change,other,10216,340.533,other,,,
+mixed_3_gap4s,session_end,squat,10216,340.533,,8.0,label change,5.0
+mixed_3_gap4s,label_change,squat,10301,343.367,squat,,,
+mixed_3_gap4s,session_start,squat,10301,343.367,,9.0,,
+mixed_3_gap4s,label_change,other,10807,360.233,other,,,
+mixed_3_gap4s,session_end,squat,10807,360.233,,9.0,label change,5.0
