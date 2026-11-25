@@ -1,0 +1,16 @@
+error,view_policy,heldout_person,threshold,n_views,n_reps,positives,alerts,tp,fp,precision,recall,conditional_bad_precision,good_views,good_false_alerts,good_false_alert_rate,correct_positive_reps,correct_positive_persons
+ERR_KNEES_INSIDE,frontal,Honza,0.8,150,110,15,31,15,16,0.4838709677419355,1.0,0.5,75,1,0.013333333333333334,11,1
+ERR_KNEES_INSIDE,frontal,Mima,0.97,152,111,15,1,1,0,1.0,0.06666666666666667,1.0,75,0,0.0,1,1
+ERR_KNEES_INSIDE,frontal,Petra,0.97,150,110,15,7,7,0,1.0,0.4666666666666667,1.0,75,0,0.0,7,1
+ERR_KNEES_INSIDE,frontal,Terka,,150,110,15,0,0,0,,0.0,,75,0,0.0,0,0
+ERR_KNEES_INSIDE,frontal,Vasil,0.95,154,113,16,1,1,0,1.0,0.0625,1.0,76,0,0.0,1,1
+ERR_TORSO_TO_SIDE,frontal,Honza,0.97,150,110,15,7,6,1,0.8571428571428571,0.4,0.8571428571428571,75,0,0.0,6,1
+ERR_TORSO_TO_SIDE,frontal,Mima,0.97,152,111,15,1,1,0,1.0,0.06666666666666667,1.0,75,0,0.0,1,1
+ERR_TORSO_TO_SIDE,frontal,Petra,,150,110,15,0,0,0,,0.0,,75,0,0.0,0,0
+ERR_TORSO_TO_SIDE,frontal,Terka,0.99,150,110,15,0,0,0,,0.0,,75,0,0.0,0,0
+ERR_TORSO_TO_SIDE,frontal,Vasil,,154,113,15,0,0,0,,0.0,,76,0,0.0,0,0
+ERR_SHALLOW_SQUAT,oblique_profile,Honza,,180,110,18,0,0,0,,0.0,,90,0,0.0,0,0
+ERR_SHALLOW_SQUAT,oblique_profile,Mima,0.95,181,111,19,7,6,1,0.8571428571428571,0.3157894736842105,1.0,90,1,0.011111111111111112,5,1
+ERR_SHALLOW_SQUAT,oblique_profile,Petra,,180,110,18,0,0,0,,0.0,,90,0,0.0,0,0
+ERR_SHALLOW_SQUAT,oblique_profile,Terka,,180,110,18,0,0,0,,0.0,,90,0,0.0,0,0
+ERR_SHALLOW_SQUAT,oblique_profile,Vasil,0.97,185,113,18,0,0,0,,0.0,,92,0,0.0,0,0

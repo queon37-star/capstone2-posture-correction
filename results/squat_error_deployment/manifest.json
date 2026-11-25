@@ -1,0 +1,60 @@
+{
+  "models": {
+    "ERR_KNEES_INSIDE": {
+      "view_policy": "frontal",
+      "feature_dim": 36,
+      "training_views": 756,
+      "positive_views": 76,
+      "negative_views": 680,
+      "unique_reps": 554,
+      "persons": 5,
+      "numpy_parity": {
+        "rows": 756,
+        "max_prob_error": 1.1102230246251565e-16,
+        "label_mismatches": 0
+      },
+      "joblib_sha256": "1093055de6630b88cf38953a638acd1447bc9c104765183a24790495ce794ed4"
+    },
+    "ERR_TORSO_TO_SIDE": {
+      "view_policy": "frontal",
+      "feature_dim": 24,
+      "training_views": 756,
+      "positive_views": 75,
+      "negative_views": 681,
+      "unique_reps": 554,
+      "persons": 5,
+      "numpy_parity": {
+        "rows": 756,
+        "max_prob_error": 2.220446049250313e-16,
+        "label_mismatches": 0
+      },
+      "joblib_sha256": "48d0d68a0a0efe53eb9556370ec229bbca7f70eb98a39dbca25226dc50274e0e"
+    },
+    "ERR_SHALLOW_SQUAT": {
+      "view_policy": "oblique_profile",
+      "feature_dim": 30,
+      "training_views": 906,
+      "positive_views": 91,
+      "negative_views": 815,
+      "unique_reps": 554,
+      "persons": 5,
+      "numpy_parity": {
+        "rows": 906,
+        "max_prob_error": 1.1102230246251565e-16,
+        "label_mismatches": 0
+      },
+      "joblib_sha256": "465feb38f90949b4e264741162c96045ed21cc73d9be330fff312f11c6e2248a"
+    }
+  },
+  "bundle_sha256": "a321f143d4943f3dc4d67a8e51f5d5dd22ed6766db7ca014c1e9b5f22d36207f",
+  "runtime_sha256": "bb44bc8fd5157e58a08a9be7d0ab0c99a1dc54daf1b5b89b84d7bf1804c10c14",
+  "threshold": 0.9,
+  "scope": "full-training candidate; not independent accuracy; annotated view filters; fixed 0.9 score threshold",
+  "source_hashes": {
+    "/home/siwon/capstone2/datasets/REHAB26-ViewAngles/Segmentation.csv": "2b431fca60d0f722f47cb5de5844e5ff26203d6881a1cae4991cf79deb40e1e3",
+    "results/squat_multiview/build/manifest.json": "e1d87abf8e3d19cd272ecddba2413d1bbd482332e0258d38337663a41b3a3d4f",
+    "/home/siwon/capstone2/pose_training_offline/scripts/train_squat_error_geometry.py": "d76ba30f1e3c1c903722268cc7016e54b156436fbcdea67dffc2eda115c80814",
+    "/home/siwon/capstone2/pose_training_offline/scripts/train_squat_error_selective.py": "e04c819724ddea790ed6be5ac21c36952d3fd31c9de33e076878077895f45914",
+    "/home/siwon/capstone2/pose_training_offline/scripts/train_squat_error_deployment.py": "1e0e2d6eee1279ebaee360c378e4fb0caa16ad326b73f40429d1a7938f2adf18"
+  }
+}

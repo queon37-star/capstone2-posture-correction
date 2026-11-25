@@ -1,0 +1,48 @@
+{
+  "scope": "GT full repetition; Good negatives included; annotated viewing angle; exploratory on same five participants; no deployed Good/Bad gate",
+  "target_precision": 0.85,
+  "min_positive_reps": 8,
+  "min_positive_persons": 3,
+  "threshold_grid": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95,
+    0.97,
+    0.99
+  ],
+  "specs": {
+    "ERR_KNEES_INSIDE": [
+      [
+        "knee_width",
+        "ankle_width",
+        "knee_minus_ankle_width",
+        "knee_ankle_ratio",
+        "inward_l",
+        "inward_r"
+      ],
+      "frontal"
+    ],
+    "ERR_TORSO_TO_SIDE": [
+      [
+        "torso_x_abs",
+        "torso_x_signed",
+        "shoulder_level_abs",
+        "hip_level_abs"
+      ],
+      "frontal"
+    ],
+    "ERR_SHALLOW_SQUAT": [
+      [
+        "hip_height_rel_ankle",
+        "knee_angle_l",
+        "knee_angle_r",
+        "hip_knee_y_l",
+        "hip_knee_y_r"
+      ],
+      "oblique_profile"
+    ]
+  }
+}

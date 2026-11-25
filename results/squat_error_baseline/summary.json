@@ -1,0 +1,40 @@
+{
+  "scope": "GT Bad repetitions only; held-out persons; one view per inference; no deployed binary gate, counter, or Hailo evaluation",
+  "classes": [
+    "ERR_KNEES_INSIDE",
+    "ERR_TORSO_TO_SIDE",
+    "ERR_SHALLOW_SQUAT",
+    "ERR_KNEES_FORWARD",
+    "ERR_LIFTED_HEELS"
+  ],
+  "n_bad_reps": 278,
+  "n_bad_views": 834,
+  "n_people": 5,
+  "source_hashes": {
+    "features_sha256": "9cb237b88077f2d7d2fe03ad4027cd7af2e276c9e938d46da42b9f61c3c22d23",
+    "repetitions_sha256": "c7d04ad09d4b22ac9e230b99b7435accd1a9e5f2c9b70adea610ca0178ef30a2"
+  },
+  "annotation_sha256": "2b431fca60d0f722f47cb5de5844e5ff26203d6881a1cae4991cf79deb40e1e3",
+  "config": {
+    "C": 0.1,
+    "thresholds": "exploratory only; not calibrated or selected",
+    "evaluation": "full GT interval; augmentation training only",
+    "features": "existing 180"
+  },
+  "results": {
+    "full": {
+      "n_views": 834,
+      "n_reps": 278,
+      "accuracy": 0.5575539568345323,
+      "macro_f1": 0.5536902439403529,
+      "balanced_accuracy": 0.5568181818181818
+    },
+    "crop10": {
+      "n_views": 834,
+      "n_reps": 278,
+      "accuracy": 0.565947242206235,
+      "macro_f1": 0.5621256780665107,
+      "balanced_accuracy": 0.5653030303030303
+    }
+  }
+}
